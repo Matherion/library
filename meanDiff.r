@@ -16,18 +16,18 @@
 
 meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level = .95, digits = 2) {
   ### This function takes the following parameters:
-  ###   x         = numeric vector: variable 1; can also be a formula of the form y ~ x,
-  ###               where x must be a factor with two levels (i.e. dichotomous)
-  ###   y         = numeric vector: variable 2; can be empty if x is a formula
-  ###   paired    = boolean; are x & y independent or dependent? Note that if
-  ###               x & y are dependent, they need to have the same length
-  ###   var.equal = string; only relevant if x & y are independent; can be:
-  ###                 "test" (default): test whether x & y have different
-  ###                                   variances
-  ###                 "no":             assume x & y have different variances
-  ###                 "yes":            assume x & y have the same variance
-  ###   ci        = confidence of confidence intervals
-  ###   digits    = with what precision do you want the ress to print
+  ###   x          = numeric vector: variable 1; can also be a formula of the form y ~ x,
+  ###                where x must be a factor with two levels (i.e. dichotomous)
+  ###   y          = numeric vector: variable 2; can be empty if x is a formula
+  ###   paired     = boolean; are x & y independent or dependent? Note that if
+  ###                x & y are dependent, they need to have the same length
+  ###   var.equal  = string; only relevant if x & y are independent; can be:
+  ###                  "test" (default): test whether x & y have different
+  ###                                    variances
+  ###                  "no":             assume x & y have different variances
+  ###                  "yes":            assume x & y have the same variance
+  ###   conf.level = confidence of confidence intervals
+  ###   digits     = with what precision do you want the ress to print
 
   ### This function uses the formulae from Borenstein,
   ### Hedges, Higgins & Rothstein (2009) (pages 25-32)
