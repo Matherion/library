@@ -141,3 +141,12 @@ popFrequencies <- c(2, 4, 8, 6, 10, 15, 12, 200, 350, 400);
 ### Show the sampling distribution for samples of 5, 10, and 50 people
 samplingDistribution(popValues = popValues, popFrequencies = popFrequencies,
                      sampleSize = 200, samples = 100000, showSingleSample=TRUE, digits=5);
+
+### Create a skweded distribution of seven possible values
+popValues <- c(1, 2, 3, 4, 5, 6, 7);
+popFrequencies <- c(70, 15, 5, 4, 3, 2, 1);
+
+### Show the sampling distribution for samples of 5, 10, and 50 people
+samplingDistribution(popValues = popValues, popFrequencies = popFrequencies,
+                     sampleSize = 144, samples = 100000, showSingleSample=TRUE, digits=5);
+
