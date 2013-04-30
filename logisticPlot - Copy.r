@@ -9,21 +9,10 @@
 
 logisticPlot <- function(criterion, predictor,
                          probabilities = c(.1, .3, .5, .7, .9),
-                         xAxisRange = NULL, granularity = 1,
-                         xdigits = 2, ydigits=2, xlab = NULL, ylab = NULL) {
-  ### criterion     = the dependent variable (must be dichotomous)
-  ### predictor     = the independent variable (should normally be interval)
-  ### probabilities = the probabilities for which the generate specific
-  ###                 predictions
-  ### xAxisRange    = range of X axis (can't always be determined from data,
-  ###                 because the data may only cover part of the scale)
+                         xAxisRange = NULL, granularity = 1) {
   ### granularity            determines which steps to take when
   ###                        creating the x-axis vector for the plot (which
   ###                        runs from the xAxisRange minimum to its maximum)
-  ### xdigits       = precision of labels on x axes of plots
-  ### ydigits       = precision of labels on y axes of plots
-  ### xlab          = label of x axes of plots
-  ### ylab          = label of y axes of plots
   
   ### Create an object to store the results in
   res <- list();
@@ -58,6 +47,13 @@ logisticPlot <- function(criterion, predictor,
   ### plot should go - we may not be able to derive this from the
   ### data after all, because observed values may only cover a
   ### subset of the scale.
+  ###  (Note that
+  ###     min(dat$ALEIDSSC, na.rm=TRUE);
+  ###   results in 0 and
+  ###     max(dat$ALEIDSSC, na.rm=TRUE);
+  ###  results in 98. However, the LEIDSSC has a theoretical maximum
+  ###  valueof 136.)
+  
   if (is.null(xAxisRange)) {
     xAxisMin <- min(predictor, na.rm=TRUE);
     xAxisMax <- max(predictor, na.rm=TRUE);
@@ -66,10 +62,6 @@ logisticPlot <- function(criterion, predictor,
     xAxisMin <- min(xAxisRange);
     xAxisMax <- max(xAxisRange);
   }
-  
-  xAxisMin <- round(xAxisMin, xdigits);
-  xAxisMax <- round(xAxisMax, xdigits);
-  
   res$xAxisMin <- xAxisMin;
   res$xAxisMax <- xAxisMax;
   
@@ -78,8 +70,7 @@ logisticPlot <- function(criterion, predictor,
   ### We will then generate predicted probabilities for every
   ### value in that variable.
   
-  fittedData <- data.frame(seq(xAxisMin, xAxisMax, by=granularity));
-  names(fittedData)[1] = "predictor";
+  fittedData <- data.frame("predictor"=seq(xAxisMin, xAxisMax, by=granularity));
   
   ### This command takes our model and a dataframe (the dataframe we
   ### just generates). It then computes predicted values, using the
@@ -145,12 +136,20 @@ logisticPlot <- function(criterion, predictor,
                                                     coef(model)[['predictor']]);
   }  
 
-  exactPredictor <- data.frame(selectedPredictions$exact.predictor);
-  names(exactPredictor)[1]= "predictor";
+  #exactPredictor <- data.frame("predictor"=as.vector(selectedPredictions$exact.predictor));
+  
+  exactPredictor <- data.frame("predictor"=c(1,2,3));
+
+  print(exactPredictor);
   
   ### Get the exact predicted logodds for these values
-  #exactPredictions <- predict(model, newData=exactPredictor, se.fit=TRUE);
-  exactPredictions <- predict(model, newdata=exactPredictor, se.fit=TRUE);
+  exactPredictions <- predict(model, newData=exactPredictor, se.fit=TRUE);
+
+  att1 <- data.frame("predictor"=seq(xAxisMin, xAxisMax, by=granularity));
+  att2 <- predict(model, newData=att1, se.fit=TRUE);
+  
+  print(length(exactPredictions$fit));
+  print(length(att2$fit));
   
   ### Convert these logodds to probablities
   exactPredictions$predictedProbability <- exp(exactPredictions$fit) /
@@ -184,149 +183,24 @@ logisticPlot <- function(criterion, predictor,
   
   windowsFonts(plotFont=windowsFont("TT Trebuchet MS"))
   
-  ### Set x and y labels
-  if (is.null(xlab)) {
-    xlabel <- predictorName;
-  }
-  else {
-    xlabel <- xlab;
-  }
-  if (is.null(ylab)) {
-    ylabel <- paste0("probability at ", criterionName);
-  }
-  else {
-    ylabel <- ylab;
-  }
+  ### Specify the plot
   
-  ### Specify the plots
-
-  ### Determine whether we need to add 0 and 1 to the
-  ### yBreaks vector
-  yBreaks.closest <- as.vector(selectedPredictions$closest.probability);
-  if (0 < min(yBreaks.closest)) {
-    yBreaks.closest <- append(0, yBreaks.closest);
-  }
-  if (max(yBreaks.closest) < 1) {
-    yBreaks.closest <- append(yBreaks.closest, 1);
-  }
-  
-  ### Set the xBreaks vector and perhaps add breaks if the
-  ### scale minimum and maximum are not yet included.
-  xLimits.closest <- c(xAxisMin, xAxisMax);
-  xBreaks.closest <- selectedPredictions$closest.predictor;
-  if (xAxisMin < min(selectedPredictions$closest.predictor)) {
-    xBreaks.closest <- append(xAxisMin, xBreaks.closest);
-  }
-  if (max(selectedPredictions$closest.predictor) < xAxisMax) {
-    xBreaks.closest <- append(xBreaks.closest, xAxisMax);
-  }
-
-  ### Round breaks
-  xBreaks.closest <- round(xBreaks.closest, xdigits);
-  xLimits.closest <- round(xLimits.closest, xdigits);
-  yBreaks.closest <- round(yBreaks.closest, ydigits);
-  
-  res$plot.closest <- ggplot(fittedData, aes(predictor, predictedProbability)) +
+  res$plot <- ggplot(fittedData, aes(predictor, predictedProbability)) +
     geom_line() +
-    geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
-    xlab(xlabel) +
-    ylab(ylabel) +
-    scale_x_continuous(limits = xLimits.closest,
+    geom_ribbon(aes(ymin=lowerCI,ymax=upperCI),alpha=0.3) +
+    scale_x_continuous(limits = c(xAxisMin, xAxisMax),
                        expand = c(0,0),
-                       breaks = xBreaks.closest) +
+                       breaks = selectedPredictions$predictor) +
     scale_y_continuous(limits = c(0,1),
                        expand = c(0,0),
-                       breaks = yBreaks.closest) +
+                       selectedPredictions$probability) +
     theme_bw() +
     theme(plot.title   = element_text(family = "plotFont", face="bold", size=30)
           , axis.title   = element_text(family = "plotFont", face="bold", size=30)
           , axis.title.y = element_text(angle=90)
           , plot.margin  = unit(c(1, 1, 1, 1), "cm")
     );
-
-  ### Determine whether we need to add 0 and 1 to the
-  ### yBreaks vector
-  yBreaks.exact <- as.vector(exactPredictions$predictedProbability);
-  if (0 < min(yBreaks.exact)) {
-    yBreaks.exact <- append(0, yBreaks.exact);
-  }
-  if (max(yBreaks.exact) < 1) {
-    yBreaks.exact <- append(yBreaks.exact, 1);
-  }
   
-  ### Since the exact predictions may be interpolated or extrapolated,
-  ### they may contain nonsensical values that may exceed the min/max
-  ### scale anchors. Thus, we may need to redefine the min/max of the
-  ### X scale. Also, if we don't redefine, add the scale min/max to
-  ### the xBreaks vector.
-  xLimits.exact <- c(xAxisMin, xAxisMax);
-  xBreaks.exact <- selectedPredictions$exact.predictor;
-  if (min(selectedPredictions$exact.predictor) < xAxisMin) {
-    xLimits.exact[1] <- min(selectedPredictions$exact.predictor)
-  }
-  else {
-    xBreaks.exact <- append(xAxisMin, xBreaks.exact);
-  }
-  if (max(selectedPredictions$exact.predictor) > xAxisMax) {
-    xLimits.exact[2] <- max(selectedPredictions$exact.predictor)
-  }
-  else {
-    xBreaks.exact <- append(xBreaks.exact, xAxisMax);
-  }
-  
-  ### Round breaks
-  xBreaks.exact <- round(xBreaks.exact, xdigits);
-  xLimits.exact <- round(xLimits.exact, xdigits);
-  yBreaks.exact <- round(yBreaks.exact, ydigits);
-  
-  ### If there was extrapolation, our predictions don't extend
-  ### to the whole x axis, so we need a new set of predictions.
-  if ((min(xLimits.exact) < xAxisMin) | (xAxisMax < max(xLimits.exact))) {
-
-    ### Generate dataframe with new predictor values
-    newFit <- data.frame(seq(min(xLimits.exact), max(xLimits.exact), by=granularity));
-    names(newFit)[1] = "predictor";
-    
-    ### Get new predictions
-    newPred <- predict(model, newdata=newFit, se.fit=TRUE);
-    res$predictions.exact <- newPred;  
-    
-    ### Convert the logarithmic values to probabilities and get CI.    
-    newFit$predictedProbability <- exp(newPred$fit) /
-      (1 + exp(newPred$fit));
-    newFit$lowerCI <- exp(newPred$fit - 1.96 * newPred$se.fit) /
-      (1 + exp(newPred$fit - 1.96 * newPred$se.fit));
-    newFit$upperCI <- exp(newPred$fit + 1.96 * newPred$se.fit) /
-      (1 + exp(newPred$fit + 1.96 * newPred$se.fit));
-    
-    ### Store new data in returnable object
-    res$fittedData.exact <- newFit;
-    
-    data.exact <- newFit;
-    
-  }
-  else {
-    data.exact <- fittedData;
-  }
-
-  res$plot.exact <- ggplot(data.exact, aes(predictor, predictedProbability)) +
-    geom_line() +
-    geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
-    xlab(xlabel) +
-    ylab(ylabel) +
-    scale_x_continuous(limits = xLimits.exact,
-                       expand = c(0,0),
-                       breaks = xBreaks.exact) +
-    scale_y_continuous(limits = c(0,1),
-                       expand = c(0,0),
-                       breaks = yBreaks.exact) +
-    theme_bw() +
-    theme(plot.title   = element_text(family = "plotFont", face="bold", size=30)
-          , axis.title   = element_text(family = "plotFont", face="bold", size=30)
-          , axis.title.y = element_text(angle=90)
-          , plot.margin  = unit(c(1, 1, 1, 1), "cm")
-    );
-
   return(res);
   
 }  
