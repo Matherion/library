@@ -157,3 +157,11 @@ popFrequencies <- c(37, 20, 28, 18, 10, 8, 4, 1, 3, 6, 4, 3);
 ### Show the sampling distribution for this sample
 samplingDistribution(popValues = popValues, popFrequencies = popFrequencies,
                      sampleSize = sum(popFrequencies), samples = 50000, showSingleSample=TRUE, digits=5);
+
+### Input sample from paper to review for HRJ
+popValues <- c(1:15);
+popFrequencies <- c(150, 200, 100, 50, 40, 30, 20, 10, 0, 5, 3, 2, 1, 2, 1);
+
+### Show the sampling distribution for this sample
+samplingDistribution(popValues = popValues, popFrequencies = popFrequencies,
+                     sampleSize = 50, samples = 50000, showSingleSample=TRUE, digits=5);

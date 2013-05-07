@@ -8,9 +8,10 @@
 ### http://stats.stackexchange.com/questions/29044/plotting-confidence-intervals-for-the-predicted-probabilities-from-a-logistic-re
 
 logisticPlot <- function(criterion, predictor,
-                         probabilities = c(.1, .3, .5, .7, .9),
+                         probabilities = c(.25, .5, .75),
                          xAxisRange = NULL, granularity = 1,
-                         xdigits = 2, ydigits=2, xlab = NULL, ylab = NULL) {
+                         xdigits = 2, ydigits=2, xlab = NULL, ylab = NULL,
+                         savePlots = "both", plotFormat = "svg", savePredictorValues = FALSE) {
   ### criterion     = the dependent variable (must be dichotomous)
   ### predictor     = the independent variable (should normally be interval)
   ### probabilities = the probabilities for which the generate specific
@@ -24,6 +25,10 @@ logisticPlot <- function(criterion, predictor,
   ### ydigits       = precision of labels on y axes of plots
   ### xlab          = label of x axes of plots
   ### ylab          = label of y axes of plots
+  ### savePlots     = determines which plots are saved: can be "none",
+  ###                 "exact", "closest" or "both"
+  ### plotFormat    = determines format to save plots: can be "svg" or "png"
+  ### savePredictorValues = whether to save the selected predictor values
   
   ### Create an object to store the results in
   res <- list();
@@ -182,7 +187,7 @@ logisticPlot <- function(criterion, predictor,
   ### it out). In Windows, to change the font used in the plot,
   ### just change it here.
   
-  windowsFonts(plotFont=windowsFont("TT Trebuchet MS"))
+  windowsFonts(plotFont=windowsFont("TT Arial"))
   
   ### Set x and y labels
   if (is.null(xlab)) {
@@ -192,7 +197,7 @@ logisticPlot <- function(criterion, predictor,
     xlabel <- xlab;
   }
   if (is.null(ylab)) {
-    ylabel <- paste0("probability at ", criterionName);
+    ylabel <- paste0("Probability at ", criterionName);
   }
   else {
     ylabel <- ylab;
@@ -238,9 +243,11 @@ logisticPlot <- function(criterion, predictor,
                        expand = c(0,0),
                        breaks = yBreaks.closest) +
     theme_bw() +
-    theme(plot.title   = element_text(family = "plotFont", face="bold", size=30)
-          , axis.title   = element_text(family = "plotFont", face="bold", size=30)
-          , axis.title.y = element_text(angle=90)
+    theme(plot.title     = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title   = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title.y = element_text(angle=90, vjust = -0.1)
+          , axis.title.x = element_text(vjust = -0.5)
+          , axis.text    = element_text(family = "plotFont", face="bold", size=10)
           , plot.margin  = unit(c(1, 1, 1, 1), "cm")
     );
 
@@ -321,12 +328,36 @@ logisticPlot <- function(criterion, predictor,
                        expand = c(0,0),
                        breaks = yBreaks.exact) +
     theme_bw() +
-    theme(plot.title   = element_text(family = "plotFont", face="bold", size=30)
-          , axis.title   = element_text(family = "plotFont", face="bold", size=30)
-          , axis.title.y = element_text(angle=90)
+    theme(plot.title   = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title   = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title.y = element_text(angle=90, vjust = -0.1)
+          , axis.title.x = element_text(vjust = -0.5)
+          , axis.text    = element_text(family = "plotFont", face="bold", size=10)
           , plot.margin  = unit(c(1, 1, 1, 1), "cm")
     );
 
+  ### Save plots as scalable vector graphics file, for further editing
+  ### and eventually rasterization. Note that width and height are
+  ### specified in centimeters.
+  
+  if ((savePlots == "both") | (savePlots == "closest")) {
+    plotFilename <- paste0(predictorName, " predicting ", criterionName, " (closest).", plotFormat);
+    ggsave(file=plotFilename, plot=res$plot.closest, width=6, height=6);
+  }
+
+  if ((savePlots == "both") | (savePlots == "exact")) {
+    plotFilename <- paste0(predictorName, " predicting ", criterionName, " (exact).", plotFormat);
+    ggsave(file=plotFilename, plot=res$plot.exact, width=6, height=6);
+  }
+  
+  ### Save selected predictor values
+  if (savePredictorValues) {
+    predictorValuesFilename <- paste0("predictor values & probabilities for ", predictorName,
+                                      " predicting ", criterionName, ".txt");
+    write.table(selectedPredictions.dat, predictorValuesFilename, sep="\t", row.names=FALSE);
+  }
+  
   return(res);
   
-}  
+}
+

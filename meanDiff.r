@@ -215,13 +215,13 @@ meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level =
 
 print.diff.means <- function (x, digits=x$digits, ...) {
   if (regexpr("Matched pairs", x$type) > -1) {
-    variableInfo <- paste0("\n  ", x$variables[1], " (mean = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n, ")",
-                           "\n  ", x$variables[2], " (mean = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n, ")");
+    variableInfo <- paste0("\n  ", x$variables[1], " (mean 1 = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n, ")",
+                           "\n  ", x$variables[2], " (mean 2 = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n, ")");
     varianceInfo <- paste0(x$type, "\n  (standard deviation of the difference: ", round(sqrt(x$variance), digits), ")");
   }
   else if (regexpr("Independent samples", x$type)) {
-    variableInfo <- paste0("\n  ", x$variables[1], " (mean = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n[1], ")",
-                           "\n  ", x$variables[2], " (mean = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n[2], ")");
+    variableInfo <- paste0("\n  ", x$variables[1], " (mean 1 = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n[1], ")",
+                           "\n  ", x$variables[2], " (mean 2 = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n[2], ")");
     if (regexpr("equal variances", x$type)) {
       varianceInfo <- paste0(x$type, "\n  (pooled standard deviation used, ", round(sqrt(x$variance), digits), ")");
     }
