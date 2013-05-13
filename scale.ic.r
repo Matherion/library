@@ -84,7 +84,7 @@ scale.ic <- function (dataframe, itemnames = 'all', digits = 2) {
 print.scale.ic <- function (x, digits=x$output$digits, ...) {
   cat(paste0("Dataframe: ", x$output$dataframe,
            "\nItems: ", paste(x$output$items, collapse=", "),
-           "\nObservations: ", x$output$n.items,
+           "\nObservations: ", x$output$n.observations,
            "\nCronbach's alpha: ", round(x$output$cronbach.alpha, digits=digits),
            "\nGreatest Lower Bound (GLB): ", round(x$output$glb.max, digits=digits),
            "\nOmega(total): ", round(x$output$omega.total, digits=digits), "\n"));
