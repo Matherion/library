@@ -184,22 +184,29 @@ logisticPlot <- function(criterion, predictor,
   ###########################################################
   ### Plotting
   ###########################################################
-    
-  ### Before specyfing the plots, we determine where the
-  ### breaks should be for the 'closest' version of the
-  ### plot (that only has realistic values of the predictor,
-  ### i.e., the closest possible values to the desired
-  ### probabilities) and the 'exact' version (where the
-  ### 'exact' version has the values for the predictor
-  ### corresponding exactly to the corresponding values
-  ### of the desired probabilities, which may be
-  ### unrealistic).
-  ###
-  ### Also, for these exact values, it may be necessary
-  ### to extrapolate the predictor values, so if need be,
-  ### this is done.
   
-  ######### 'Closest' version of the plot
+  ### First create a mapping to the default windows font (not
+  ### sure what this does on a mac; you may be able to comment
+  ### it out). In Windows, to change the font used in the plot,
+  ### just change it here.
+  
+  windowsFonts(plotFont=windowsFont("TT Arial"))
+  
+  ### Set x and y labels
+  if (is.null(xlab)) {
+    xlabel <- predictorName;
+  }
+  else {
+    xlabel <- xlab;
+  }
+  if (is.null(ylab)) {
+    ylabel <- paste0("Probability at ", criterionName);
+  }
+  else {
+    ylabel <- ylab;
+  }
+  
+  ### Specify the plots
 
   ### Determine whether we need to add 0 and 1 to the
   ### yBreaks vector
@@ -221,15 +228,32 @@ logisticPlot <- function(criterion, predictor,
   if (max(selectedPredictions$closest.predictor) < xAxisMax) {
     xBreaks.closest <- append(xBreaks.closest, xAxisMax);
   }
-  
+
   ### Round breaks
   xBreaks.closest <- round(xBreaks.closest, xdigits);
   xLimits.closest <- round(xLimits.closest, xdigits);
   yBreaks.closest <- round(yBreaks.closest, ydigits);
   
+  res$plot.closest <- ggplot(fittedData, aes(predictor, predictedProbability)) +
+    geom_line() +
+    geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
+    xlab(xlabel) +
+    ylab(ylabel) +
+    scale_x_continuous(limits = xLimits.closest,
+                       expand = c(0,0),
+                       breaks = xBreaks.closest) +
+    scale_y_continuous(limits = c(0,1),
+                       expand = c(0,0),
+                       breaks = yBreaks.closest) +
+    theme_bw() +
+    theme(plot.title     = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title   = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title.y = element_text(angle=90, vjust = -0.1)
+          , axis.title.x = element_text(vjust = -0.5)
+          , axis.text    = element_text(family = "plotFont", face="bold", size=10)
+          , plot.margin  = unit(c(1, 1, 1, 1), "cm")
+    );
 
-  ######### 'Exact' version of the plot
-  
   ### Determine whether we need to add 0 and 1 to the
   ### yBreaks vector
   yBreaks.exact <- as.vector(exactPredictions$predictedProbability);
@@ -295,80 +319,25 @@ logisticPlot <- function(criterion, predictor,
     data.exact <- fittedData;
   }
 
-  ######### Actual plotting
-  
-  ### Set x and y labels
-  if (is.null(xlab)) {
-    xlabel <- predictorName;
-  }
-  else {
-    xlabel <- xlab;
-  }
-  if (is.null(ylab)) {
-    ylabel <- paste0("Probability at ", criterionName);
-  }
-  else {
-    ylabel <- ylab;
-  }
-  
-  ### Specify data for plot
-  basicPlot <- ggplot(data.exact, aes(predictor, predictedProbability));
-  
-  ### Define basic plot - note that what we do here
-  ### depends on the operating system - on Windows,
-  ### we first create a mapping to the default windows 
-  ### font.
-  if ((Sys.info()['sysname']) == "Windows") {
-    windowsFonts(plotFont=windowsFont("TT Arial"));
-    basicPlot <- basicPlot + geom_line() +
-      geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
-      xlab(xlabel) +
-      ylab(ylabel) +
-      theme_bw() +
-      theme(plot.title     = element_text(family = "plotFont", face="bold", size=15)
-            , axis.title   = element_text(family = "plotFont", face="bold", size=15)
-            , axis.title.y = element_text(angle=90, vjust = -0.1)
-            , axis.title.x = element_text(vjust = -0.5)
-            , axis.text    = element_text(family = "plotFont", face="bold", size=10)
-            , plot.margin  = unit(c(1, 1, 1, 1), "cm")
-      );
-  }
-  else {
-    basicPlot <- basicPlot + geom_line() +
-      geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
-      xlab(xlabel) +
-      ylab(ylabel) +
-      theme_bw() +
-      theme(plot.title     = element_text(family = "Arial", face="bold", size=15)
-            , axis.title   = element_text(family = "Arial", face="bold", size=15)
-            , axis.title.y = element_text(angle=90, vjust = -0.1)
-            , axis.title.x = element_text(vjust = -0.5)
-            , axis.text    = element_text(family = "Arial", face="bold", size=10)
-            , plot.margin  = unit(c(1, 1, 1, 1), "cm")
-      );
-  }
-
-  if (!is.null(plotSettings)) {
-    basicPlot <- basicPlot + plotSettings;
-  }
-
-  ### Define 'closest' plot
-  res$plot.closest <- basicPlot + 
-    scale_x_continuous(limits = xLimits.closest,
-                       expand = c(0,0),
-                       breaks = xBreaks.closest) +
-    scale_y_continuous(limits = c(0,1),
-                       expand = c(0,0),
-                       breaks = yBreaks.closest);
-  
-  ### Define 'exact' plot
-  res$plot.exact <- basicPlot + 
+  res$plot.exact <- ggplot(data.exact, aes(predictor, predictedProbability)) +
+    geom_line() +
+    geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
+    xlab(xlabel) +
+    ylab(ylabel) +
     scale_x_continuous(limits = xLimits.exact,
                        expand = c(0,0),
                        breaks = xBreaks.exact) +
     scale_y_continuous(limits = c(0,1),
                        expand = c(0,0),
-                       breaks = yBreaks.exact);
+                       breaks = yBreaks.exact) +
+    theme_bw() +
+    theme(plot.title   = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title   = element_text(family = "plotFont", face="bold", size=15)
+          , axis.title.y = element_text(angle=90, vjust = -0.1)
+          , axis.title.x = element_text(vjust = -0.5)
+          , axis.text    = element_text(family = "plotFont", face="bold", size=10)
+          , plot.margin  = unit(c(1, 1, 1, 1), "cm")
+    );
 
   ### Save plots as scalable vector graphics file, for further editing
   ### and eventually rasterization. Note that width and height are

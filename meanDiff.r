@@ -215,13 +215,15 @@ meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level =
 
 print.diff.means <- function (x, digits=x$digits, ...) {
   if (regexpr("Matched pairs", x$type) > -1) {
-    variableInfo <- paste0("\n  ", x$variables[1], " (mean 1 = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n, ")",
-                           "\n  ", x$variables[2], " (mean 2 = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n, ")");
+    variableInfo <- paste0("\n  ", x$variables[1], " (mean = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n, ")",
+                           "\n  ", x$variables[2], " (mean = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n, ")");
     varianceInfo <- paste0(x$type, "\n  (standard deviation of the difference: ", round(sqrt(x$variance), digits), ")");
   }
   else if (regexpr("Independent samples", x$type)) {
-    variableInfo <- paste0("\n  ", x$variables[1], " (mean 1 = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n[1], ")",
-                           "\n  ", x$variables[2], " (mean 2 = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n[2], ")");
+    variableInfo <- paste0("\n  ", x$variables[2],
+                           "\n  ", x$variables[1],
+                           "\n  Mean 1 = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n[1],
+                           "\n  Mean 2 = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n[2]);
     if (regexpr("equal variances", x$type)) {
       varianceInfo <- paste0(x$type, "\n  (pooled standard deviation used, ", round(sqrt(x$variance), digits), ")");
     }
@@ -229,7 +231,7 @@ print.diff.means <- function (x, digits=x$digits, ...) {
       varianceInfo <- paste0(x$type, "\n  (standard deviation used of largest sample, ", round(sqrt(x$variance), digits), ")");
     }
   }
-  cat(paste0("Variables:", 
+  cat(paste0("Input variables:\n",
            variableInfo,
            "\n\n", varianceInfo,
            "\n\n", round(x$ci.confidence * 100, digits), "% confidence intervals:",
@@ -239,6 +241,6 @@ print.diff.means <- function (x, digits=x$digits, ...) {
              " (Cohen's d point estimate: ", round(x$meanDiff.d, digits), ")",
            "\n  Hedges g for difference:  [", round(x$meanDiff.g.ci.lower, digits), ", ", round(x$meanDiff.g.ci.upper, digits), "]",
              " (Hedges g point estimate:  ", round(x$meanDiff.g, digits), ")",
-           "\n\n(secondary information (NHST): t = ", round(x$t, digits), "[", round(x$df, digits),"], p = ", format.pval(x$p, digits), ")\n"));
+           "\n\n(secondary information (NHST): t[", round(x$df, digits), "] = ", round(x$t, digits), ", p = ", format.pval(x$p, digits), ")\n"));
   invisible();
 }
