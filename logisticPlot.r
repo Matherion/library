@@ -365,7 +365,7 @@ logisticPlot <- function(criterion, predictor,
   ### depends on the operating system - on Windows,
   ### we first create a mapping to the default windows 
   ### font.
-  if (grep("windows", tolower(Sys.info()['sysname']))) {
+  if (length(grep("windows", tolower(Sys.info()['sysname']))) > 0) {
     windowsFonts(plotFont=windowsFont("TT Arial"));
     basicPlot <- basicPlot + geom_line(size = lineSize, colour = lineCol) +
       geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=ribbonAlpha, fill = ribbonCol) +
