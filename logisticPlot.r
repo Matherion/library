@@ -1,3 +1,14 @@
+###########################################################
+###########################################################
+###
+### R file with to generate plots showing the probability
+### of becoming depressed as a function of 
+###
+### File created by Gjalt-Jorn Peters. Questions? You can
+### contact me through http://behaviorchange.eu.
+###
+###########################################################
+###########################################################
 ### This function conducts a logistic regression and
 ### plots the predicted values and the confidence
 ### interval.
@@ -6,13 +17,39 @@
 ### that smillig and user21010 gave to a question on the
 ### CrossValidated StackExchange page at
 ### http://stats.stackexchange.com/questions/29044/plotting-confidence-intervals-for-the-predicted-probabilities-from-a-logistic-re
+###
+###########################################################
+###########################################################
+
+### Note: when calling this function, you can specify custom settings
+### for the plot that will override the default settings. For example,
+### this is a way to change the colours to blue and increase the font
+### size (assumes a dataframe called 'dat' with two variables,
+### conveniently named 'criterion' and 'predictor' :-)):
+###
+### plotSettings <- theme(axis.line = element_line(size = 1.5, colour = "#073975")
+###                       , panel.grid.major = element_line(size = 0.5, colour = "#073975", linetype = "dotted")
+###                       , axis.ticks = element_line (size = 1.5, colour = "#073975")
+###                       , plot.title = element_text(family = "Arial", face="bold", size=24, colour="#073975")
+###                       , axis.title   = element_text(family = "Arial", face="bold", size=24, colour="#073975")
+###                       , axis.text    = element_text(family = "Arial", face="bold", size=18, colour="#073975")
+###                       );
+###
+### logisticPlotted <- logisticPlot(dat$criterion, dat$predictor, plotSettings = plotSettings,
+###                                 lineCol = "#073975", ribbonCol = "#073975");
+###
+### logisticPlotted$plot.closest;
+### logisticPlotted$plot.exact;
 
 logisticPlot <- function(criterion, predictor,
                          probabilities = c(.25, .5, .75),
                          xAxisRange = NULL, granularity = 1,
                          xdigits = 2, ydigits=2, xlab = NULL, ylab = NULL,
-                         plotSettings = NULL, savePlots = "both",
-                         plotFormat = "svg", savePredictorValues = FALSE) {
+                         plotSettings = NULL, lineCol = "#000000",
+                         lineSize = 1.5, ribbonAlpha = .2,
+                         ribbonCol = "#888888", savePlots = "both",
+                         plotFormat = "svg", savedPlotSizeX = 8,
+                         savedPlotSizeY = 8, savePredictorValues = FALSE) {
   ### criterion     = the dependent variable (must be dichotomous)
   ### predictor     = the independent variable (should normally be interval)
   ### probabilities = the probabilities for which the generate specific
@@ -28,9 +65,21 @@ logisticPlot <- function(criterion, predictor,
   ### ylab          = label of y axes of plots
   ### plotSettings  = basic plot settings for ggplot2 that overwrite
   ###                 default settings
+  ### lineCol       = Colour of line in plot
+  ### lineSize      = Thickness of line in plot
+  ### ribbonAlpha   = Alpha (transparancy) of ribbon (reflecting
+  ###                 confidence interval) in plot
+  ### ribbonCol     = Colour of ribbon (confidence interval) in plot
   ### savePlots     = determines which plots are saved: can be "none",
   ###                 "exact", "closest" or "both"
-  ### plotFormat    = determines format to save plots: can be "svg" or "png"
+  ### plotFormat    = determines format to save plots: can be either a
+  ###                 character string or a vector of character strings
+  ###                 if you want to save multiple versions, for
+  ###                 example: c("svg", "png")
+  ###                 The extensions are appended to the filename, so
+  ###                 any extension that ggsave accepts can be used.
+  ### savedPlotSizeX= horizontal size of saved plot (in inches)
+  ### savedPlotSizeY= vertical size of saved plot (in inches)
   ### savePredictorValues = whether to save the selected predictor values
   
   ### Create an object to store the results in
@@ -318,10 +367,10 @@ logisticPlot <- function(criterion, predictor,
   ### depends on the operating system - on Windows,
   ### we first create a mapping to the default windows 
   ### font.
-  if ((Sys.info()['sysname']) == "Windows") {
+  if (grep("windows", tolower(Sys.info()['sysname']))) {
     windowsFonts(plotFont=windowsFont("TT Arial"));
-    basicPlot <- basicPlot + geom_line() +
-      geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
+    basicPlot <- basicPlot + geom_line(size = lineSize, colour = lineCol) +
+      geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=ribbonAlpha, fill = ribbonCol) +
       xlab(xlabel) +
       ylab(ylabel) +
       theme_bw() +
@@ -334,8 +383,8 @@ logisticPlot <- function(criterion, predictor,
       );
   }
   else {
-    basicPlot <- basicPlot + geom_line() +
-      geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=0.3) +
+    basicPlot <- basicPlot + geom_line(size = lineSize, colour = lineCol) +
+      geom_ribbon(aes(ymin=lowerCI,ymax=upperCI), alpha=ribbonAlpha, fill = ribbonCol) +
       xlab(xlabel) +
       ylab(ylabel) +
       theme_bw() +
@@ -345,9 +394,14 @@ logisticPlot <- function(criterion, predictor,
             , axis.title.x = element_text(vjust = -0.5)
             , axis.text    = element_text(family = "Arial", face="bold", size=10)
             , plot.margin  = unit(c(1, 1, 1, 1), "cm")
+            , plot.background = element_rect(fill = "transparent")
+            , panel.background = element_rect(fill = "transparent")
+            , panel.grid.minor = element_blank()
+            , panel.border = element_blank()
       );
   }
-
+  
+  ### If custom plot settings were specified, apply them
   if (!is.null(plotSettings)) {
     basicPlot <- basicPlot + plotSettings;
   }
@@ -371,17 +425,20 @@ logisticPlot <- function(criterion, predictor,
                        breaks = yBreaks.exact);
 
   ### Save plots as scalable vector graphics file, for further editing
-  ### and eventually rasterization. Note that width and height are
-  ### specified in centimeters.
+  ### and eventually rasterization.
   
   if ((savePlots == "both") | (savePlots == "closest")) {
-    plotFilename <- paste0(predictorName, " predicting ", criterionName, " (closest).", plotFormat);
-    ggsave(file=plotFilename, plot=res$plot.closest, width=6, height=6);
+    for (currentFiletype in plotFormat) {
+      plotFilename <- paste0(predictorName, " predicting ", criterionName, " (closest).", currentFiletype);
+      ggsave(file=plotFilename, plot=res$plot.closest, width=savedPlotSizeX, height=savedPlotSizeY);
+    }
   }
 
   if ((savePlots == "both") | (savePlots == "exact")) {
-    plotFilename <- paste0(predictorName, " predicting ", criterionName, " (exact).", plotFormat);
-    ggsave(file=plotFilename, plot=res$plot.exact, width=6, height=6);
+    for (currentFiletype in plotFormat) {
+      plotFilename <- paste0(predictorName, " predicting ", criterionName, " (exact).", currentFiletype);
+      ggsave(file=plotFilename, plot=res$plot.exact, width=savedPlotSizeX, height=savedPlotSizeY);
+    }
   }
   
   ### Save selected predictor values
