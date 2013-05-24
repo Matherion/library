@@ -1,17 +1,15 @@
 ###########################################################
 ###########################################################
 ###
-### R file with to generate plots showing the probability
-### of becoming depressed as a function of 
+### R function to generate plots that plot probability
+### and confidence intervals as a function of a predictor
+### value in bivariate logistic regressions.
 ###
 ### File created by Gjalt-Jorn Peters. Questions? You can
 ### contact me through http://behaviorchange.eu.
 ###
 ###########################################################
 ###########################################################
-### This function conducts a logistic regression and
-### plots the predicted values and the confidence
-### interval.
 ###
 ### Note: this function is based on the very helpful answer
 ### that smillig and user21010 gave to a question on the
