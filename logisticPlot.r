@@ -31,7 +31,11 @@
 ###                       , plot.title = element_text(family = "Arial", face="bold", size=24, colour="#073975")
 ###                       , axis.title   = element_text(family = "Arial", face="bold", size=24, colour="#073975")
 ###                       , axis.text    = element_text(family = "Arial", face="bold", size=18, colour="#073975")
-###                       );
+###                       , panel.grid.minor = element_blank()
+###                       , panel.border = element_blank()
+###                       , plot.background = element_rect(fill = "transparent")
+###                       , panel.background = element_rect(fill = "transparent")
+###                      );
 ###
 ### logisticPlotted <- logisticPlot(dat$criterion, dat$predictor, plotSettings = plotSettings,
 ###                                 lineCol = "#073975", ribbonCol = "#073975");
@@ -392,10 +396,6 @@ logisticPlot <- function(criterion, predictor,
             , axis.title.x = element_text(vjust = -0.5)
             , axis.text    = element_text(family = "Arial", face="bold", size=10)
             , plot.margin  = unit(c(1, 1, 1, 1), "cm")
-            , plot.background = element_rect(fill = "transparent")
-            , panel.background = element_rect(fill = "transparent")
-            , panel.grid.minor = element_blank()
-            , panel.border = element_blank()
       );
   }
   
