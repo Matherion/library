@@ -11,6 +11,49 @@
 ###########################################################
 
 ###########################################################
+### 
+### Example of the use of the function for SPSS users
+###
+### The easiest way is to simply save a datafile with only
+### the items in the scale you're interested in (repeat
+### this if there are multiple such scales, of course).
+### This is possible by selecting "Save As" in SPSS's
+### File menu and then clicking the button marked
+### "Variables". This allows the user to select which
+### variables to store by 'keeping' or 'dropping'
+### variables.
+###
+### Then, the resulting datafile can be loaded into R
+### with the commands below.
+###
+### To use these commands, remove the three hash symbols
+### at the start of each line; retain three hash symbols
+### if a line six of them.
+###
+### Replace [[FOLDER&FILENAME]] with the folder and
+### filename of the datafile, for example:
+### "C:/Users/Gjalt-Jorn/Desktop/datafile.sav"
+### Note that in R, instead of backslashes, you have to
+### use slashes!
+###
+### The R code starts here:
+###
+### ### The foreign package can read SPSS files
+### if (!is.element("foreign", installed.packages()[,1])) {
+###    install.packages("foreign");
+### }
+### require('foreign');
+### dat <- read.spss("[[FOLDER&FILENAME]]",
+###                  use.value.labels=FALSE,
+###                  to.data.frame=TRUE);
+### scale.ic(dataframe = dat);
+###
+### R will then report Cronbach's alpha, the GLB,
+### and Omega(total).
+### 
+###########################################################
+
+###########################################################
 ### Installing the required packages
 ###########################################################
 
