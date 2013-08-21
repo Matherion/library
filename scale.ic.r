@@ -23,22 +23,20 @@
 ### variables to store by 'keeping' or 'dropping'
 ### variables.
 ###
-### Then, the resulting datafile can be loaded into R
-### with the commands below.
+### Then use the commands below to load the the resulting
+### datafile into R and obtain the internal consistency
+### measures.
 ###
 ### To use these commands, remove the three hash symbols
-### at the start of each line; retain three hash symbols
-### if a line six of them.
-###
-### Replace [[FOLDER&FILENAME]] with the folder and
-### filename of the datafile, for example:
+### at the start of each line below, and replace
+### [[FOLDER&FILENAME]] with the folder and filename of
+### the datafile, for example:
 ### "C:/Users/Gjalt-Jorn/Desktop/datafile.sav"
 ### Note that in R, instead of backslashes, you have to
-### use slashes!
+### use slashes like in this example.
+### Then, simply paste these lines into R:
 ###
-### The R code starts here:
-###
-### ### The foreign package can read SPSS files
+############ START OF R CODE
 ### if (!is.element("foreign", installed.packages()[,1])) {
 ###    install.packages("foreign");
 ### }
@@ -47,6 +45,7 @@
 ###                  use.value.labels=FALSE,
 ###                  to.data.frame=TRUE);
 ### scale.ic(dataframe = dat);
+############ END OF R CODE
 ###
 ### R will then report Cronbach's alpha, the GLB,
 ### and Omega(total).
