@@ -44,7 +44,6 @@ didacticPlotTheme <- function(base_size = 14, base_family = "") {
     theme(
       axis.text         = element_text(colour="#000000", size = rel(0.8)),
       axis.ticks        = element_line(colour = "black"),
-      axis.title        = element_blank(),
       legend.text       = element_text(size = rel(0.6)),
       legend.key        = element_rect(colour = "grey80"),
       legend.position   = "top",
