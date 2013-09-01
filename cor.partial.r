@@ -17,7 +17,6 @@ safeRequire('psych');
 ### psych package, which computes partial correlations
 cor.partial <- function(dat, varsToCorrelate, varsToCorrectFor) {
   allVars <- c(varsToCorrelate, varsToCorrectFor);
-  print(allVars);
   corMatrix <- cor(dat[, allVars]);
   varsToCorrelate.indices <- which(colnames(corMatrix) %in% varsToCorrelate);
   varsToCorrectFor.indices <- which(colnames(corMatrix) %in% varsToCorrectFor);
