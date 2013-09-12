@@ -1,9 +1,14 @@
-### e1071 contains the kurtosis and skewness functions
-if (!is.element("e1071", installed.packages()[,1])) {
-  install.packages("e1071");
+### This function checks whether a package is installed;
+### if not, it installs it. It then loads the package.
+safeRequire <- function(packageName) {
+  if (!is.element(packageName, installed.packages()[,1])) {
+    install.packages(packageName);
+  }
+  require(package = packageName, character.only=TRUE);
 }
-### Load package
-require(e1071);
+
+### e1071 contains the kurtosis and skewness functions
+safeRequire('e1071');
 
 ### Function definition
 samplingDistribution <- function(popValues = c(0, 1), popFrequencies = c(50, 50),
