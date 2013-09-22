@@ -1,3 +1,14 @@
+###########################################################
+###########################################################
+###
+### Function to generate a PDF with four panels per page,
+### showing some basic item characteristics.
+###
+### File created by Gjalt-Jorn Peters. Questions? You can
+### contact me through http://behaviorchange.eu.
+###
+###########################################################
+###########################################################
 
 ### This function checks whether a package is installed;
 ### if not, it installs it. It then loads the package.
@@ -57,12 +68,12 @@ loadOwnFunction('normalityAssessment');
 
 ### This function generates a pdf file with a report
 ### describing the variables.
-itemInspection <- function(dat, items, PdfLaTexPath, filename="itemInspection", digits=4) {
+itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", digits=4) {
   ### dat          : dataframe containing the items to inspect
   ### items        : either a character vector with the itemnames, or,
   ###                if the items are organised in scales, a list of
   ###                character vectors with the items in each scale.
-  ### PdfLaTexPath : the path to PdfLaTex. This file is part of a LaTeX
+  ### pdfLaTexPath : the path to PdfLaTex. This file is part of a LaTeX
   ###                installation that creates a pdf out of a .tex file.
   ###
   ###                In Windows, you can download (portable) MikTex from
@@ -72,20 +83,20 @@ itemInspection <- function(dat, items, PdfLaTexPath, filename="itemInspection", 
   ###                  in, for example, 'C:\Program Files\MikTex', the total
   ###                  path becomes 'C:\Program Files\MikTex\miktex\bin'. Note
   ###                  that R uses slashes instead of backslashes to separate
-  ###                  folders, so in this example, PdfLatexPath should be
+  ###                  folders, so in this example, pdfLatexPath should be
   ###                  'C:/Program Files/MikTex/miktex/bin'
   ###
   ###                In MacOS, you can install MacTex from http://tug.org/mactex/
   ###                  or a smaller distribution called BasicTex from
   ###                  http://www.tug.org/mactex/morepackages.html
   ###                  In MacOs, by default, pdflatex ends up in folder '/user/texbin',
-  ###                  which is what PdfLaTexPath should be in that default case.
+  ###                  which is what pdfLaTexPath should be in that default case.
   ###
   ###                In Ubuntu, you can install TexLive base by using your package
   ###                  manager to install texlive-latex-base, or using the terminal:
   ###                  'sudo apt-get install texlive-latex-base'
   ###                  In Ubuntu, by default pdflatex ends up in folder '/usr/bin',
-  ###                  which is what PdfLaTexPath should be in that default case.
+  ###                  which is what pdfLaTexPath should be in that default case.
   ###                
   ### filename     : the filename to use to save the pdf
   ### digits       : the number of digits to use in the tables

@@ -12,10 +12,15 @@ safeRequire <- function(packageName) {
 ### self-made function exists; if so, it's loaded;
 ### if not, the file is downloaded from GitHub
 loadOwnFunction <- function(fileName) {
-  if (file.exists(paste0(libraryPath, paste0(fileName, ".r")))) {
-    source(paste0(libraryPath, paste0(fileName, ".r")));
-  } else {
-    
+  sourceLoaded <- FALSE;
+  if (exists('libraryPath')) {
+    if (file.exists(paste0(libraryPath, paste0(fileName, ".r")))) {
+      source(paste0(libraryPath, paste0(fileName, ".r")));
+      sourceLoaded <- TRUE;
+    }
+  }
+  
+  if (!sourceLoaded) {
     ### Note: I took this from
     ### https://github.com/gimoya/theBioBucket-Archives/blob/master/R/Functions/source_https.R
     ### and edited it to fit in here.
@@ -35,6 +40,7 @@ loadOwnFunction <- function(fileName) {
   }
 }
 
+
 ### Function to escape special latex characters, based on
 ### http://stackoverflow.com/questions/5406071/r-sweave-latex-escape-variables-to-be-printed-in-latex
 sanitizeLatexS <- function(str) {
@@ -52,12 +58,12 @@ loadOwnFunction('normalityAssessment');
 
 ### This function generates a pdf file with a report
 ### describing the variables.
-itemInspection <- function(dat, items, PdfLaTexPath, filename="itemInspection", digits=4) {
+itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", digits=4) {
   ### dat          : dataframe containing the items to inspect
   ### items        : either a character vector with the itemnames, or,
   ###                if the items are organised in scales, a list of
   ###                character vectors with the items in each scale.
-  ### PdfLaTexPath : the path to PdfLaTex. This file is part of a LaTeX
+  ### pdfLaTexPath : the path to PdfLaTex. This file is part of a LaTeX
   ###                installation that creates a pdf out of a .tex file.
   ###
   ###                In Windows, you can download (portable) MikTex from
@@ -67,18 +73,18 @@ itemInspection <- function(dat, items, PdfLaTexPath, filename="itemInspection", 
   ###                  in, for example, 'C:\Program Files\MikTex', the total
   ###                  path becomes 'C:\Program Files\MikTex\miktex\bin'. Note
   ###                  that R uses slashes instead of backslashes to separate
-  ###                  folders, so in this example, PdfLatexPath should be
+  ###                  folders, so in this example, pdfLaTexPath should be
   ###                  'C:/Program Files/MikTex/miktex/bin'
   ###
   ###                In MacOS, you can install MacTex from http://tug.org/mactex/
   ###                  By default, pdflatex ends up in folder '/user/texbin', which
-  ###                  is what PdfLaTexPath should be in that default case.
+  ###                  is what pdfLaTexPath should be in that default case.
   ###
   ###                In Ubuntu, you can install TexLive base by using your package
   ###                  manager to install texlive-latex-base, or using the terminal:
   ###                  'sudo apt-get install texlive-latex-base'
   ###                  In ubuntu, by default pdflatex ends un in folder '/usr/bin',
-  ###                  which is what PdfLaTexPath should be in that default case.
+  ###                  which is what pdfLaTexPath should be in that default case.
   ###                
   ### filename     : the filename to use to save the pdf
   ### digits       : the number of digits to use in the tables
