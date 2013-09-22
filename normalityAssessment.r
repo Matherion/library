@@ -26,12 +26,14 @@ ifelseObj <- function(condition, ifTrue, ifFalse) {
 
 ### Function definition
 normalityAssessment <- function(sampleVector, samples = 5000, digits=3,
-                         samplingDistColor = "#2222CC",
-                         normalColor = "#00CC00",
-                         samplingDistLineSize = 2,
-                         normalLineSize = 1) {
-  
-  
+                                samplingDistColor = "#2222CC",
+                                normalColor = "#00CC00",
+                                samplingDistLineSize = 2,
+                                normalLineSize = 1,
+                                xLabel.sampleDist = NULL,
+                                yLabel.sampleDist = NULL,
+                                xLabel.samplingDist = NULL,
+                                yLabel.samplingDist = NULL) {
   
   ### Create object for returning results
   res <- list(sampleVector.raw = sampleVector,
@@ -54,12 +56,20 @@ normalityAssessment <- function(sampleVector, samples = 5000, digits=3,
   sampleDistY <- res$sampleVector;
   tempDat <- data.frame(normalX = normalX, normalY = normalY, sampleDist = sampleDistY);
   tempBinWidth <- (max(res$sampleVector) - min(res$sampleVector)) / 30;
+
+  ### Generate labels if these weren't specified
+  if (is.null(xLabel.sampleDist)) {
+    xLabel.sampleDist <- paste0('Value of ', deparse(substitute(sampleVector)));
+  }
+  if (is.null(yLabel.sampleDist)) {
+    yLabel.sampleDist <- paste0('Density for n=', res$sampleSize);
+  }
   
   ### Plot sample distribution
   res$plot.sampleDist <- ggplot(data=tempDat,
          aes(x=sampleDist)) +
-    xlab(paste0('Value of ', deparse(substitute(sampleVector)))) +
-    ylab(paste0('Density for n=', res$sampleSize)) +
+    xlab(xLabel.sampleDist) +
+    ylab(yLabel.sampleDist) +
     geom_histogram(aes(y=..density..), color=NA, fill=samplingDistColor, alpha=.25, binwidth=tempBinWidth) +
     geom_density(color=samplingDistColor, size=samplingDistLineSize, alpha=.5) +
     geom_line(aes(x=normalX, y=normalY), color=normalColor, size=normalLineSize);
@@ -82,11 +92,19 @@ normalityAssessment <- function(sampleVector, samples = 5000, digits=3,
   tempDat <- data.frame(normalX = normalX, normalY = normalY, samplingDist = samplingDistY);
   tempBinWidth <- (max(res$samplingDistribution) - min(res$samplingDistribution)) / 30;
   
+  ### Generate labels if these weren't specified
+  if (is.null(xLabel.samplingDist)) {
+    xLabel.samplingDist <- paste0('Value of ', deparse(substitute(sampleVector)));
+  }
+  if (is.null(yLabel.samplingDist)) {
+    yLabel.samplingDist <- paste0('Density for ', res$samples, ' samples of n=', res$sampleSize);
+  }
+  
   ### Plot sampling distribution
   res$plot.samplingDist <- ggplot(data=tempDat,
                                   aes(x=samplingDist)) +
-    xlab(paste0('Value of ', deparse(substitute(sampleVector)))) +
-    ylab(paste0('Density for ', res$samples, ' samples of n=', res$sampleSize)) +
+    xlab(xLabel.samplingDist) +
+    ylab(yLabel.samplingDist) +
     geom_histogram(aes(y=..density..), color=NA, fill=samplingDistColor, alpha=.25, binwidth=tempBinWidth) +
     geom_density(color=samplingDistColor, size=samplingDistLineSize, alpha=.5) +
     geom_line(aes(x=normalX, y=normalY), color=normalColor, size=normalLineSize);
@@ -163,7 +181,7 @@ print.normalityAssessment <- function (x) {
              ",\nKurtosis=", round(x$kurtosis.samplingDist, x$digits),
              ", Skewness=", round(x$skewness.samplingDist, x$digits),
              "\n", sw.sampleDist, "\n",
-             "Anderson-Darling: p=", round(1-x$ad.sampleDist@test$p.value, x$digits),
+             "Anderson-Darling: p=", round(x$ad.sampleDist@test$p.value, x$digits),
              " (A=", round(x$ad.sampleDist@test$statistic, x$digits), ")\n",
              "Kolmogorov-Smirnof: p=", round(x$ks.sampleDist$p.value, x$digits),
              " (D=", round(x$ks.sampleDist$statistic, x$digits), ")"));
@@ -176,7 +194,7 @@ print.normalityAssessment <- function (x) {
              ",\nKurtosis=", round(x$kurtosis.samplingDist, x$digits),
              ", Skewness=", round(x$skewness.samplingDist, x$digits),
              ".\n", sw.samplingDist, "\n",
-             "Anderson-Darling: p=", round(1-x$ad.samplingDist@test$p.value, x$digits),
+             "Anderson-Darling: p=", round(x$ad.samplingDist@test$p.value, x$digits),
              " (A=", round(x$ad.samplingDist@test$statistic, x$digits), ")\n",
              "Kolmogorov-Smirnof: p=", round(x$ks.samplingDist$p.value, x$digits),
              " (D=", round(x$ks.samplingDist$statistic, x$digits), ")"));

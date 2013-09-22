@@ -219,6 +219,14 @@ didacticPlot <- function(foundValue, statistic, df1, df2 = NULL,
               color=surfaceCol, hjust=0, parse=TRUE);
   
   ### Return result object
+  class(res) <- c('didacticPlot');
   return(res);
   
 }
+
+print.didacticPlot <- function(x) {
+  print(x$plot.complete);
+}
+
+### a<-didacticPlot(1, statistic='chisq', df1=2);
+### a<-didacticPlot(1, statistic='t', df1=40);

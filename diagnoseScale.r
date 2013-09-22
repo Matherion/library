@@ -21,21 +21,22 @@ diagnoseScale <- function(dat, variableNames) {
   res <- list();
   
   ### Extract dataframe and select only complete cases
-  dat <- dat[complete.cases(dat[, variableNames]), variableNames];
+  res$dat <- dat[complete.cases(dat[, variableNames]), variableNames];
+  res$n <- nrow(res$dat);
   
   ### Basic univariate descriptives
-  res$describe <- describe(dat);
+  res$describe <- describe(res$dat);
   
   ### Bivariate correlations
-  res$cor <- cor(dat, use="complete.obs");
+  res$cor <- cor(res$dat, use="complete.obs");
   
   ### Visual representation of bivariate correlations
   ### First generate a normal scattermatrix with histograms
   ### on the diagonal
-  res$ggpairs.normal <- ggpairs(dat, diag=list(continuous="bar", discrete="bar"),
+  res$ggpairs.normal <- ggpairs(res$dat, diag=list(continuous="bar", discrete="bar"),
                                 axisLabels="none");
   ### Then generate one with jittered points
-  res$ggpairs.jittered <- ggpairs(dat, params=c(position="jitter"), axisLabels="none");
+  res$ggpairs.jittered <- ggpairs(res$dat, params=c(position="jitter"), axisLabels="none");
   ### Then place the histograms on the diagonal of
   ### the jittered scattermatrix
   res$ggpairs.combined <- res$ggpairs.jittered;
@@ -52,8 +53,24 @@ diagnoseScale <- function(dat, variableNames) {
   #                    + missing = FALSE, impute = "median", min.err = 0.001, digits = 2,
   #                    + max.iter = 100, symmetric = TRUE, warnings = TRUE, fm = "pa")
   
+  ### Extract eigen values
+  res$eigen <- eigen(res$cor);
+  ### Determine how many factors have eigenvalues
+  ### over 1 - note that we're not doing a real
+  ### exploratory factor analysis, we're just interested
+  ### in whether this scale works out (it's not
+  ### unidimensional if more than one factor has an
+  ### eigenvalue a lot over 1)
+  res$factors <- sum(res$eigen$values > 1);
+  ### Principal components analysis
+  res$pca <- principal(r = res$cor, n.obs = res$n, rotate="oblimin",
+                       nfactors=res$factors);
+  ### Exploratory factor analysis
+  res$fa <- fa(r = res$cor, n.obs = res$n, rotate="oblimin",
+               fm="pa", nfactors=res$factors);
+  
   ### Internal consistency measures
-  res$scale.ic <- scale.ic(dataframe=dat, itemnames=variableNames);
+  res$scale.ic <- scale.ic(dataframe=res$dat, itemnames=variableNames);
 
   ### Return results
   class(res) <- c('diagnoseScale');
