@@ -12,10 +12,15 @@ safeRequire <- function(packageName) {
 ### self-made function exists; if so, it's loaded;
 ### if not, the file is downloaded from GitHub
 loadOwnFunction <- function(fileName) {
-  if (file.exists(paste0(libraryPath, paste0(fileName, ".r")))) {
-    source(paste0(libraryPath, paste0(fileName, ".r")));
-  } else {
-    
+  sourceLoaded <- FALSE;
+  if (exists('libraryPath')) {
+    if (file.exists(paste0(libraryPath, paste0(fileName, ".r")))) {
+      source(paste0(libraryPath, paste0(fileName, ".r")));
+      sourceLoaded <- TRUE;
+    }
+  }
+  
+  if (!sourceLoaded) {
     ### Note: I took this from
     ### https://github.com/gimoya/theBioBucket-Archives/blob/master/R/Functions/source_https.R
     ### and edited it to fit in here.
