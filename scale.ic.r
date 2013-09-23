@@ -72,63 +72,93 @@ if (!is.element('ltm', installed.packages()[,1])) {
 ###########################################################
 ### Loading the required packages
 ###########################################################
-library("psych");
-library("GPArotation");
-library("ltm");
+require("psych");
+require("GPArotation");
+require("ltm");
 
 ###########################################################
 ### Define functions
 ###########################################################
 
 scale.ic <- function (dataframe, itemnames = 'all', digits = 2) {
+  ### Make object to store results
+  res <- list();
+  
   ### if itemnames contains only 1 element (or less), we
   ### include all items.
   if (length(itemnames) <= 1) {
     ### Remove all cases with missing data (listwise deletion)
-    dat <- na.omit(dataframe);
+    res$dat <- na.omit(dataframe);
   }
   else {
     ### Select relevant items and remove all cases with
     ### missing data (listwise deletion)
-    dat <- na.omit(subset(dataframe, select=itemnames));
+    res$dat <- na.omit(subset(dataframe, select=itemnames));
   }
+
+  res$dat.name <- deparse(substitute(dataframe));
+  res$n.items <- ncol(res$dat);
+  res$n.observations <- nrow(res$dat);
+  res$items <- itemnames;
+  res$digits <- digits;
+  ### Store results in a convenient list
+  res$output <- list();
+  ### Also generate a dataframe (useful when
+  ### requesting measures for many scales)
+  res$output.dataframe <- data.frame(n.items        = res$n.items,
+                                     n.observations = res$n.observations);
+                                     
   ### Get correlation matrix (input for omega & glb)
-  dat.cor <- cor(dat, use="complete.obs");
+  res$cor <- cor(res$dat, use="complete.obs");
   ### Cronbach's alpha
-  dat.alpha <- cronbach.alpha(dat, na.rm=TRUE);
-  ### GLB
-  dat.glb <- glb(dat);
-  ### Omega
-  dat.omega <- omega(dat);
-  ### Store results in a list to return
-  result = list(output = list(dataframe      = deparse(substitute(dataframe)),
-                              items          = names(dat),
-                              n.items        = ncol(dat),
-                              n.observations = nrow(dat),
-                              cronbach.alpha = dat.alpha$alpha,
-                              glb.max        = dat.glb$glb.max,
-                              omega.total    = dat.omega$omega.tot,
-                              digits         = digits),
-                output.dataframe = data.frame(n.items        = ncol(dat),
-                                              n.observations = nrow(dat),
-                                              cronbach.alpha = dat.alpha$alpha,
-                                              glb.max        = dat.glb$glb.max,
-                                              omega.total    = dat.omega$omega.tot),
-                object.alpha  = dat.alpha,
-                object.glb    = dat.glb,
-                object.omega  = dat.omega);
+  res$alpha <- cronbach.alpha(res$dat, na.rm=TRUE);
+  res$output$cronbach.alpha <- res$alpha$alpha;
+  res$output.dataframe$cronbach.alpha <- res$alpha$alpha;
+  
+  ### GLB and Onega can only be computed if the number
+  ### of items exceeds two
+  
+  if (res$n.items > 2) {
+    ### GLB
+    res$glb <- glb(res$dat);
+    res$output$glb.max  <- res$glb$glb.max;
+    res$output.dataframe$glb.max  <- res$glb$glb.max;
+    ### Omega
+    res$omega <- omega(res$dat, plot=FALSE);
+    res$output$omega.total <- res$omega$omega.tot;
+    res$output.dataframe$omega.total <- res$omega$omega.tot;
+  }
+  else if (res$n.items == 2) {
+    ### Otherwise, compute Spearman Brown coefficient
+    ### (see Eisinga, te Grotenhuis & Pelzer (2013). The reliability
+    ### of a two-item scale: Pearson, Cronbach, or Spearman-Brown?
+    ### International journal of public health, 58(4), 637-42.
+    ### doi:10.1007/s00038-012-0416-3)
+    ### Get r in numeric variable for convenience
+    r <- res$cor[1,2];
+    res$spearman.brown <- 1 / (1 + (1 / ((r/(1-r)) + (r/(1-r)))));
+    res$output$spearman.brown <- res$spearman.brown;
+    res$output.dataframe$spearman.brown <- res$spearman.brown;
+  }
+  
   ### Set result class (to enable nice printing)
-  class(result) <- c("scale.ic");
+  class(res) <- c("scale.ic");
   ### Return result
-  return(result);
+  return(res);
 }
 
-print.scale.ic <- function (x, digits=x$output$digits, ...) {
-  cat(paste0("Dataframe: ", x$output$dataframe,
-           "\nItems: ", paste(x$output$items, collapse=", "),
-           "\nObservations: ", x$output$n.observations,
-           "\nCronbach's alpha: ", round(x$output$cronbach.alpha, digits=digits),
-           "\nGreatest Lower Bound (GLB): ", round(x$output$glb.max, digits=digits),
-           "\nOmega(total): ", round(x$output$omega.total, digits=digits), "\n"));
+print.scale.ic <- function (x, digits=x$digits, ...) {
+  cat(paste0("Dataframe: ", x$dat.name,
+           "\nItems: ", paste(x$items, collapse=", "),
+           "\nObservations: ", x$n.observations));
+  if (x$n.items > 2) {
+    cat(paste0("\nOmega(total): ", round(x$output$omega.total, digits=digits),
+               "\nGreatest Lower Bound (GLB): ", round(x$output$glb.max, digits=digits),
+               "\nCronbach's alpha: ", round(x$output$cronbach.alpha, digits=digits), "\n"));
+  } else if (x$n.items == 2) {
+    cat(paste0("\nSpearman Brown coefficient: ", round(x$output$spearman.brown, digits=digits),
+               "\nCronbach's alpha: ", round(x$output$cronbach.alpha, digits=digits),
+               "\nPearson Correlation: ", round(x$cor[1, 2], digits=digits), "\n"));
+  }
   invisible();
 }

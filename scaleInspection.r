@@ -1,8 +1,9 @@
 ###########################################################
 ###########################################################
 ###
-### Function to generate a PDF with four panels per page,
-### showing some basic item characteristics.
+### Function to generate a PDF with some diagnostics to
+### assess how the elements (usually items) in a scale
+### relate to each other.
 ###
 ### File created by Gjalt-Jorn Peters. Questions? You can
 ### contact me through http://behaviorchange.eu.
@@ -68,7 +69,7 @@ loadOwnFunction('normalityAssessment');
 
 ### This function generates a pdf file with a report
 ### describing the variables.
-itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", digits=4) {
+scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection", digits=4) {
   ### dat          : dataframe containing the items to inspect
   ### items        : either a character vector with the itemnames, or,
   ###                if the items are organised in scales, a list of
@@ -119,9 +120,9 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
          paste0(names(lapply(items, is.character)), ': ', lapply(items, is.character), '\n'));
   }
   
-  if ((!file.exists(paste0(PdfLaTexPath, "/pdflatex"))) &
-        (!file.exists(paste0(PdfLaTexPath, "/pdflatex")))) {
-    stop('In path "', PdfLaTexPath, '", the file pdflatex.exe (Windows) or ',
+  if ((!file.exists(paste0(pdfLaTexPath, "/pdflatex.exe"))) &
+        (!file.exists(paste0(pdfLaTexPath, "/pdflatex")))) {
+    stop('In path "', pdfLaTexPath, '", the file pdflatex.exe (Windows) or ',
          'pdflatex (MacOS or Ubuntu (Linux)) does not exist! Please ',
          'locate the file and provide its path (without the last ',
          'slash).');
@@ -129,144 +130,171 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
 
   res <- list();
   res$items <- items;
-  
+  res$scales <- list();
   res$describe <- list();
-  res$plot <- list();
+  res$scaleDiagnostics <- list();
+  res$scaleDiagnostics.errors <- list();
+  res$normality.plots <- list();
   res$rnwBit <- list();
   res$normality.sampleDist <- list();
   res$normality.samplingDist <- list();
   
-  res$rnw <- "\\documentclass[a4paper,landscape,11pt]{article}
+  res$rnw <- "\\documentclass[a4paper,portrait,11pt]{article}
 
 % For adjusting margins
 \\usepackage[margin=15mm]{geometry}
 
 % !Rnw weave = knitr
 
-\\title{Chatbot Study Item Inspection}
+\\title{Chatbot Study Scale Inspection}
 \\author{Gjalt-Jorn Peters}
 \\begin{document}
 \\raggedright
 \\noindent
 ";  
   
-  ### Process items per scale
+  ### Process each scale separately
   for (currentScale in names(items)) {
-    ### Create lists for each scale to store results
-    res$describe[[currentScale]] <- list();
-    res$plot[[currentScale]] <- list();
-    res$rnwBit[[currentScale]] <- list();
-    res$normality.sampleDist[[currentScale]] <- list();
-    res$normality.samplingDist[[currentScale]] <- list();
-    ### Process items one by one
-    for (currentItem in items[[currentScale]]) {
-      ### Extract univariate descriptives to show
-      res$describe[[currentScale]][[currentItem]] <-
-        describe(dat[, currentItem])[, c('n', 'mean', 'sd', 'median', 'min', 'max', 'skew', 'kurtosis')];
-      ### Generate and store plots for assessment of normality
-      res$plot[[currentScale]][[currentItem]] <-
-        normalityAssessment(dat[, currentItem],
-                            xLabel.sampleDist = 'Sample Distribution',
-                            yLabel.sampleDist = 'Density',
-                            xLabel.samplingDist = 'Sampling Distribution',
-                            yLabel.samplingDist = 'Density',
-                            samplingDistLineSize = .5,
-                            normalLineSize = .2);
-      ### Create dataframe with normality statistics for the
-      ### sample distribution
-      res$normality.sampleDist[[currentScale]][[currentItem]] <-
-        data.frame(sw = c(round(res$plot[[currentScale]][[currentItem]]$sw.sampleDist$statistic, 4),
-                          round(res$plot[[currentScale]][[currentItem]]$sw.sampleDist$p.value, 4)),
-                   ad = c(round(res$plot[[currentScale]][[currentItem]]$ad.sampleDist@test$statistic, 4),
-                          round(res$plot[[currentScale]][[currentItem]]$ad.sampleDist@test$p.value, 4)),
-                   ks = c(round(res$plot[[currentScale]][[currentItem]]$ks.sampleDist$statistic, 4),
-                          round(res$plot[[currentScale]][[currentItem]]$ks.sampleDist$p.value, 4)));
-      row.names(res$normality.sampleDist[[currentScale]][[currentItem]]) <- c('value', 'p-val');
-      ### Create dataframe with normality statistics for the
-      ### sampling distribution
-      res$normality.samplingDist[[currentScale]][[currentItem]] <-
-        data.frame(sw = c(round(res$plot[[currentScale]][[currentItem]]$sw.samplingDist$statistic, 4),
-                          round(res$plot[[currentScale]][[currentItem]]$sw.samplingDist$p.value, 4)),
-                   ad = c(round(res$plot[[currentScale]][[currentItem]]$ad.samplingDist@test$statistic, 4),
-                          round(res$plot[[currentScale]][[currentItem]]$ad.samplingDist@test$p.value, 4)),
-                   ks = c(round(res$plot[[currentScale]][[currentItem]]$ks.samplingDist$statistic, 4),
-                          round(res$plot[[currentScale]][[currentItem]]$ks.samplingDist$p.value, 4)));
-      row.names(res$normality.samplingDist[[currentScale]][[currentItem]]) <- c('value', 'p-val');
-      ### Generate the minipage for this item, consisting of:
-      ###  - name of measure (scale)
-      ###  - name of measurement (item)
-      ###  - table with univariate descriptives
-      ###  - minipage with:
-      ###     - plotted sample distribution
-      ###     - normality statistics for sample distribution
-      ###  - minipage with:
-      ###     - plotted sampling distribution
-      ###     - normality statistics for sampling distribution
-      res$rnwBit[[currentScale]][[currentItem]] <-
-        paste0('\\begin{minipage}[t][90mm][t]{133.5mm}\n',
-               'MEASURE: ',
-               sanitizeLatexS(currentScale),
-               '\n\\newline\nMEASUREMENT: ',
-               sanitizeLatexS(currentItem),
-               '\n\\newline\n',
+    res$scales[[currentScale]] <- rowMeans(dat[, items[[currentScale]]], na.rm=TRUE);
+    ### Extract univariate descriptives to show
+    res$describe[[currentScale]] <-
+      describe(res$scales[[currentScale]])[, c('n', 'mean', 'sd', 'median', 'min', 'max', 'skew', 'kurtosis')];
+    ### Generate and store plots for assessment of normality
+    res$normality.plots[[currentScale]] <-
+      normalityAssessment(res$scales[[currentScale]],
+                          xLabel.sampleDist = 'Sample Distribution',
+                          yLabel.sampleDist = 'Density',
+                          xLabel.samplingDist = 'Sampling Distribution',
+                          yLabel.samplingDist = 'Density',
+                          samplingDistLineSize = .5,
+                          normalLineSize = .2);
+    ### Create dataframe with normality statistics for the
+    ### sample distribution
+    res$normality.sampleDist[[currentScale]] <-
+      data.frame(sw = c(round(res$normality.plots[[currentScale]]$sw.sampleDist$statistic, 4),
+                        round(res$normality.plots[[currentScale]]$sw.sampleDist$p.value, 4)),
+                 ad = c(round(res$normality.plots[[currentScale]]$ad.sampleDist@test$statistic, 4),
+                        round(res$normality.plots[[currentScale]]$ad.sampleDist@test$p.value, 4)),
+                 ks = c(round(res$normality.plots[[currentScale]]$ks.sampleDist$statistic, 4),
+                        round(res$normality.plots[[currentScale]]$ks.sampleDist$p.value, 4)));
+    row.names(res$normality.sampleDist[[currentScale]]) <- c('value', 'p-val');
+    ### Create dataframe with normality statistics for the
+    ### sampling distribution
+    res$normality.samplingDist[[currentScale]] <-
+      data.frame(sw = c(round(res$normality.plots[[currentScale]]$sw.samplingDist$statistic, 4),
+                        round(res$normality.plots[[currentScale]]$sw.samplingDist$p.value, 4)),
+                 ad = c(round(res$normality.plots[[currentScale]]$ad.samplingDist@test$statistic, 4),
+                        round(res$normality.plots[[currentScale]]$ad.samplingDist@test$p.value, 4)),
+                 ks = c(round(res$normality.plots[[currentScale]]$ks.samplingDist$statistic, 4),
+                        round(res$normality.plots[[currentScale]]$ks.samplingDist$p.value, 4)));
+    row.names(res$normality.samplingDist[[currentScale]]) <- c('value', 'p-val');
+    ### Generate scale diagnosis
+    
+    tryCatch(
+      res$scaleDiagnostics[[currentScale]] <- diagnoseScale(dat, as.vector(items[[currentScale]]))
+      , error = function(e) {
+        res$scaleDiagnostics.errors[[currentScale]] <- e;
+      }
+    );    
+    
+    ### Generate the content:
+    ###  - name of measure (scale)
+    ###  - list of items in scale
+    ###  - table with univariate descriptives of scale
+    ###  - minipage with:
+    ###     - plotted sample distribution
+    ###     - normality statistics for sample distribution
+    ###  - minipage with:
+    ###     - plotted sampling distribution
+    ###     - normality statistics for sampling distribution
+    ###  - internal consistency coefficients
+    ###  - principal component analysis
+    ###  - ggpairs plot of scatterplots, correlations, and histograms
+    
+    res$rnwBit[[currentScale]] <-
+      paste0('\\newpage\n',
+             'SCALE: ',
+             sanitizeLatexS(currentScale),
+             '\n\\newline\nITEMS: ',
+             sanitizeLatexS(paste(items[[currentScale]], collapse=", ")),
+             '\n\\newline\n',
+             '<< echo=FALSE, results="asis" >>=\n',
+             '  print(xtable(res$describe[["',
+             currentScale,
+             '"]], digits=c(0, 0, rep(digits, 7))), tabular.environment="tabular",
+             print.rownames=FALSE, floating=FALSE);\n',
+             '@\n',
+             '\\begin{minipage}[t]{80mm}\n',
+             '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=8/2.54, fig.height=8/2.54 >>=\n',
+             'res$normality.plots[["', currentScale, '"]]$plot.sampleDist;\n',
+             '@\n',
+             '<< echo=FALSE, results="asis" >>=\n',
+             '  print(xtable(res$normality.sampleDist[["',
+             currentScale,
+             '"]], digits=digits), tabular.environment="tabular",
+             floating=FALSE);\n',
+             '@\n',
+             '\\end{minipage}%\n',
+             '\\begin{minipage}[t]{80mm}\n',
+             '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=8/2.54, fig.height=8/2.54 >>=\n',
+             'res$normality.plots[["', currentScale, '"]]$plot.samplingDist;\n',
+             '@\n',
+             '<< echo=FALSE, results="asis" >>=\n',
+             '  print(xtable(res$normality.samplingDist[["',
+             currentScale,
+             '"]], digits=digits), tabular.environment="tabular",
+             floating=FALSE);\n',
+             '@\n',
+             '\\end{minipage}%\n\\newline\n');
+    
+    if (res$scaleDiagnostics[[currentScale]]$scale.ic$n.items > 2) {
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
                '<< echo=FALSE, results="asis" >>=\n',
-               '  print(xtable(res$describe[["',
-               currentScale, '"]][["', currentItem,
-               '"]], digits=c(0, 0, rep(digits, 7))), tabular.environment="tabular",
-               print.rownames=FALSE, floating=FALSE);\n',
-               '@\n',
-               '\\begin{minipage}[t][50mm][t]{60mm}\n',
-               '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=6/2.54, fig.height=5/2.54 >>=\n',
-               'res$plot[["', currentScale, '"]][["', currentItem, '"]]$plot.sampleDist;\n',
-               '@\n',
+               'cat(paste0("\n\\newline\nOmega(total): ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$scale.ic$output$omega.total, digits), "\n\\newline\nGreatest Lower Bound (GLB): ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$scale.ic$output$glb.max, digits), "\n\\newline\nCronbach\'s alpha: ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$scale.ic$output$cronbach.alpha, digits), "\n\\newline\n',
+               'Eigen values: ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$eigen$values, digits), "\n\\newline\n',
+               'Number of factors with Eigen value > 1: ", res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$factors, "\n\\newline\n", res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$fa$loadings, "\n\\newline\n));',
+               '@\n');
+    } else if (res$scaleDiagnostics[[currentScale]]$scale.ic$n.items == 2) {
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
                '<< echo=FALSE, results="asis" >>=\n',
-               '  print(xtable(res$normality.sampleDist[["',
-               currentScale, '"]][["', currentItem,
-               '"]], digits=digits), tabular.environment="tabular",
-               floating=FALSE);\n',
-               '@\n',
-               '\\end{minipage}%\n',
-               '\\begin{minipage}[t][50mm][t]{60mm}\n',
-               '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=6/2.54, fig.height=5/2.54 >>=\n',
-               'res$plot[["', currentScale, '"]][["', currentItem, '"]]$plot.samplingDist;\n',
-               '@\n',
-               '<< echo=FALSE, results="asis" >>=\n',
-               '  print(xtable(res$normality.samplingDist[["',
-               currentScale, '"]][["', currentItem,
-               '"]], digits=digits), tabular.environment="tabular",
-               floating=FALSE);\n',
-               '@\n',
-               '\\end{minipage}%\n\\\\\n',
-               '\\end{minipage}');
-      
+               '  cat(paste0("\n\nSpearman Brown coefficient: ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$scale.ic$output$spearman.brown, digits), "\n\nCronbach\'s alpha: ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$scale.ic$output$cronbach.alpha, digits), "\n\nPearson correlation: ", round(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$scale.ic$cor[1,2], digits), "\n\n"));\n',
+               '@\n');
     }
+    
   }
-  
-  ### Combine all minipages into one character vector.
-  ### Every two minipages, go to the next line;
-  ### every four minipages, go to the next page
-  panelCounter <- 0;
-  for (currentScale in names(chatbotScales)) {
-    for (currentItem in chatbotScales[[currentScale]]) {
-      panelCounter <- panelCounter + 1;
-      res$rnwPanels <- paste0(res$rnwPanels,
-                        res$rnwBit[[currentScale]][[currentItem]]);
-      if (panelCounter %% 2 == 0) {
-        res$rnwPanels <- paste0(res$rnwPanels,
-                          '\n');
-      }
-      if (panelCounter %% 4 == 0) {
-        res$rnwPanels <- paste0(res$rnwPanels,
-                          '\n\\newpage');
-      }
-    }
+
+  ### Combine all pages generated for each scale
+  for (currentScale in names(items)) {
+    res$rnwPanels <- paste0(res$rnwPanels,
+                            res$rnwBit[[currentScale]],
+                            '\n\\newpage');
   }
   
   res$rnw <- c(res$rnw, '\\section{Item Inspection}
 GENERATED ON ', date(),'\n
-CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(items)), ' measures (scales).\n
+CONTENTS: ', length(names(items)), ' measures (scales).\n
 \\newpage');
-  
+
   ### Combine all pieces
   res$rnw <- c(res$rnw, res$rnwPanels, "\n\\end{document}");
   
@@ -280,7 +308,7 @@ CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(item
   
   ### Convert the .tex file to a pdf
   tryCatch(
-    res$texOutput <- system(paste0('"', PdfLaTexPath, '/pdflatex" "',
+    res$texOutput <- system(paste0('"', pdfLaTexPath, '/pdflatex" "',
                                    getwd(), '/', filename, '.tex" ',
                                    '-output-directory "', getwd(), '"'),
                             intern=TRUE)

@@ -1,3 +1,14 @@
+###########################################################
+###########################################################
+###
+### Function to generate a PDF with four panels per page,
+### showing some basic item characteristics.
+###
+### File created by Gjalt-Jorn Peters. Questions? You can
+### contact me through http://behaviorchange.eu.
+###
+###########################################################
+###########################################################
 
 ### This function checks whether a package is installed;
 ### if not, it installs it. It then loads the package.
@@ -107,9 +118,9 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
          paste0(names(lapply(items, is.character)), ': ', lapply(items, is.character), '\n'));
   }
   
-  if ((!file.exists(paste0(PdfLaTexPath, "/pdflatex"))) &
-        (!file.exists(paste0(PdfLaTexPath, "/pdflatex")))) {
-    stop('In path "', PdfLaTexPath, '", the file pdflatex.exe (Windows) or ',
+  if ((!file.exists(paste0(pdfLaTexPath, "/pdflatex.exe"))) &
+        (!file.exists(paste0(pdfLaTexPath, "/pdflatex")))) {
+    stop('In path "', pdfLaTexPath, '", the file pdflatex.exe (Windows) or ',
          'pdflatex (MacOS or Ubuntu (Linux)) does not exist! Please ',
          'locate the file and provide its path (without the last ',
          'slash).');
@@ -234,7 +245,7 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
   ### Every two minipages, go to the next line;
   ### every four minipages, go to the next page
   panelCounter <- 0;
-  for (currentScale in names(chatbotScales)) {
+  for (currentScale in names(items)) {
     for (currentItem in chatbotScales[[currentScale]]) {
       panelCounter <- panelCounter + 1;
       res$rnwPanels <- paste0(res$rnwPanels,
@@ -268,7 +279,7 @@ CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(item
   
   ### Convert the .tex file to a pdf
   tryCatch(
-    res$texOutput <- system(paste0('"', PdfLaTexPath, '/pdflatex" "',
+    res$texOutput <- system(paste0('"', pdfLaTexPath, '/pdflatex" "',
                                    getwd(), '/', filename, '.tex" ',
                                    '-output-directory "', getwd(), '"'),
                             intern=TRUE)
