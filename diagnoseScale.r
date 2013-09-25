@@ -63,11 +63,25 @@ safeRequire('GGally');
 loadOwnFunction('scale.ic');
 
 ### Scale Diagnosis
-diagnoseScale <- function(dat, variableNames) {
-
+diagnoseScale <- function(dat, variableNames=NULL, plotSize=180, sizeMultiplier = 1,
+                          axisLabels = "none") {
+  
+  ### dat            = dataframe
+  ### variableNames  = a list of the variables that together
+  ###                  make up the scale
+  ### plotSize       = size of the final plot in millimeters
+  ### sizeMultiplier = allows more flexible control over the size
+  ###                  of the plot elements
+  
+  if (is.null(variableNames)) {
+    variableNames <- names(dat);
+  }
+  
   ### Create object to store results
   res <- list();
   res$variableNames <- variableNames;
+  res$plotSize <- plotSize;
+  res$sizeMultiplier <- sizeMultiplier;
   
   ### Extract dataframe and select only complete cases
   res$dat <- dat[complete.cases(dat[, variableNames]), variableNames];
@@ -79,13 +93,24 @@ diagnoseScale <- function(dat, variableNames) {
   ### Bivariate correlations
   res$cor <- cor(res$dat, use="complete.obs");
   
+  ### The size of each panel in the scattermatrix depends
+  ### on the number of items - therefore, we need to adjust
+  ### the plot sizes to the number of items.
+  baseSize <- (sizeMultiplier * (plotSize / ncol(res$cor))) / 100;
+  
+  plotSettings <- theme(axis.line = element_line(size = baseSize),
+                        panel.grid.major = element_line(size = baseSize/2),
+                        line = element_line(size = baseSize/2),
+                        axis.ticks = element_line (size=baseSize/2)
+                       );  
+  
   ### Visual representation of bivariate correlations
   ### First generate a normal scattermatrix with histograms
   ### on the diagonal
   res$ggpairs.normal <- ggpairs(res$dat, diag=list(continuous="bar", discrete="bar"),
-                                axisLabels="none");
+                                axisLabels=axisLabels);
   ### Then generate one with jittered points
-  res$ggpairs.jittered <- ggpairs(res$dat, params=c(position="jitter"), axisLabels="none");
+  res$ggpairs.jittered <- ggpairs(res$dat, params=c(position="jitter"), axisLabels=axisLabels);
   ### Then place the histograms on the diagonal of
   ### the jittered scattermatrix
   res$ggpairs.combined <- res$ggpairs.jittered;
@@ -96,6 +121,16 @@ diagnoseScale <- function(dat, variableNames) {
               currentVar, currentVar);
   }
 
+  for (currentRowFromTop in 1:length(variableNames)) {
+    for (currentColumnFromLeft in 1:length(variableNames)) {
+      res$ggpairs.combined <-
+        putPlot(res$ggpairs.combined,
+                getPlot(res$ggpairs.combined, currentRowFromTop, currentColumnFromLeft) + plotSettings,
+                currentRowFromTop, currentColumnFromLeft);
+    }
+  }
+  
+  
   ### Exploratory factor analysis
   #pa.out <- factor.pa(r = bfi, nfactors = 5, residuals = FALSE,
   #                    + rotate = "varimax", n.obs = NA, scores = FALSE, SMC = TRUE,

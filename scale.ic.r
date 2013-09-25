@@ -120,11 +120,11 @@ scale.ic <- function (dataframe, itemnames = 'all', digits = 2) {
   
   if (res$n.items > 2) {
     ### GLB
-    res$glb <- glb(res$dat);
+    suppressWarnings(res$glb <- glb(res$dat));
     res$output$glb.max  <- res$glb$glb.max;
     res$output.dataframe$glb.max  <- res$glb$glb.max;
     ### Omega
-    res$omega <- omega(res$dat, plot=FALSE);
+    suppressWarnings(res$omega <- omega(res$dat, plot=FALSE));
     res$output$omega.total <- res$omega$omega.tot;
     res$output.dataframe$omega.total <- res$omega$omega.tot;
   }

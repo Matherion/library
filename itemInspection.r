@@ -54,7 +54,7 @@ loadOwnFunction <- function(fileName) {
 
 ### Function to escape special latex characters, based on
 ### http://stackoverflow.com/questions/5406071/r-sweave-latex-escape-variables-to-be-printed-in-latex
-sanitizeLatexS <- function(str) {
+sanitizeLatexStringtring <- function(str) {
   gsub('([#$%&~_\\^\\\\{}])', '\\\\\\1', str, perl = TRUE);
 }
 
@@ -69,7 +69,10 @@ loadOwnFunction('normalityAssessment');
 
 ### This function generates a pdf file with a report
 ### describing the variables.
-itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", digits=4) {
+itemInspection <- function(dat, items,
+                           docTitle = "Scale inspection", docAuthor = "Author",
+                           pdfLaTexPath,
+                           filename="itemInspection", digits=4) {
   ### dat          : dataframe containing the items to inspect
   ### items        : either a character vector with the itemnames, or,
   ###                if the items are organised in scales, a list of
@@ -135,19 +138,19 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
   res$normality.sampleDist <- list();
   res$normality.samplingDist <- list();
   
-  res$rnw <- "\\documentclass[a4paper,landscape,11pt]{article}
+  res$rnw <- paste0("\\documentclass[a4paper,landscape,11pt]{article}
 
 % For adjusting margins
 \\usepackage[margin=15mm]{geometry}
 
 % !Rnw weave = knitr
 
-\\title{Chatbot Study Item Inspection}
-\\author{Gjalt-Jorn Peters}
+\\title{", docTitle, "}
+\\author{", docAuthor, "}
 \\begin{document}
 \\raggedright
 \\noindent
-";  
+");
   
   ### Process items per scale
   for (currentScale in names(items)) {
@@ -203,10 +206,10 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
       ###     - normality statistics for sampling distribution
       res$rnwBit[[currentScale]][[currentItem]] <-
         paste0('\\begin{minipage}[t][90mm][t]{133.5mm}\n',
-               'MEASURE: ',
-               sanitizeLatexS(currentScale),
-               '\n\\newline\nMEASUREMENT: ',
-               sanitizeLatexS(currentItem),
+               '\\subsection{MEASURE: ',
+               sanitizeLatexString(currentScale),
+               '}\n\\newline\nMEASUREMENT: ',
+               sanitizeLatexString(currentItem),
                '\n\\newline\n',
                '<< echo=FALSE, results="asis" >>=\n',
                '  print(xtable(res$describe[["',
@@ -260,12 +263,13 @@ itemInspection <- function(dat, items, pdfLaTexPath, filename="itemInspection", 
       }
     }
   }
-  
-  res$rnw <- c(res$rnw, '\\section{Item Inspection}
+
+  res$rnw <- c(res$rnw, '\\section{', docTitle,'}
+', docAuthor, '\n
 GENERATED ON ', date(),'\n
 CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(items)), ' measures (scales).\n
 \\newpage');
-  
+
   ### Combine all pieces
   res$rnw <- c(res$rnw, res$rnwPanels, "\n\\end{document}");
   

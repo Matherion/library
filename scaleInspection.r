@@ -54,8 +54,8 @@ loadOwnFunction <- function(fileName) {
 
 ### Function to escape special latex characters, based on
 ### http://stackoverflow.com/questions/5406071/r-sweave-latex-escape-variables-to-be-printed-in-latex
-sanitizeLatexS <- function(str) {
-  gsub('([#$%&~_\\^\\\\{}])', '\\\\\\1', str, perl = TRUE);
+sanitizeLatexString <- function(str) {
+  str <- gsub('([#$%&~_\\^\\\\{}])', '\\\\\\1', str, perl = TRUE);
 }
 
 ### Load the ggplot2 package, for plotting graphics
@@ -64,12 +64,21 @@ safeRequire("ggplot2");
 safeRequire("knitr");
 ### Load the xtable package, for making tex tables
 safeRequire("xtable");
-### Loas function to assess a variable's normality
+### Load function to assess a variable's normality
 loadOwnFunction('normalityAssessment');
+### Create correlation matrix with confidence intervals
+loadOwnFunction('rMatrix');
 
 ### This function generates a pdf file with a report
 ### describing the variables.
-scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection", digits=4) {
+scaleInspection <- function(dat, items= NULL,
+                            docTitle = "Scale inspection", docAuthor = "Author",
+                            pdfLaTexPath,
+                            filename = "scaleInspection", digits=2,
+                            rMatrixColsLandscape = 6,
+                            pboxWidthMultiplier = .7,
+                            scatterPlotBaseSize = 4,
+                            pageMargins=15) {
   ### dat          : dataframe containing the items to inspect
   ### items        : either a character vector with the itemnames, or,
   ###                if the items are organised in scales, a list of
@@ -99,9 +108,22 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
   ###                  In Ubuntu, by default pdflatex ends up in folder '/usr/bin',
   ###                  which is what pdfLaTexPath should be in that default case.
   ###                
-  ### filename     : the filename to use to save the pdf
-  ### digits       : the number of digits to use in the tables
+  ### filename             : the filename to use to save the pdf
+  ### digits               : the number of digits to use in the tables
+  ### rMatrixColsLandscape : at how many columns (or rather,
+  ###                        variables) or more should
+  ###                        rMatrices be printed landscape?
+  ### pboxWidthMultiplier  : used for print.rMatrix; used to tweak the width of
+  ###                        columns in the correlation matrix
+  ### scatterPlotBaseSize  : size of one scatterplot in the scattermatrix in
+  ###                        centimeters. If the total scattermatrix becomes
+  ###                        larger than 18 cm, it's scaled down to 18 cm.
+  ### pageMargins          : pageMargins: margins of the page in millimeters
 
+  if (is.null(items)) {
+    items <- names(dat);
+  }
+  
   if (!is.list(items)) {
     items <- list('none' <- items);
   }
@@ -138,20 +160,25 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
   res$rnwBit <- list();
   res$normality.sampleDist <- list();
   res$normality.samplingDist <- list();
+  res$rMatrix <- list();
   
-  res$rnw <- "\\documentclass[a4paper,portrait,11pt]{article}
+  res$rnw <- paste0("\\documentclass[a4paper,portrait,10pt]{article}
 
 % For adjusting margins
-\\usepackage[margin=15mm]{geometry}
+\\usepackage[margin=", pageMargins, "mm]{geometry}
+% For printing correlation table on rotated page
+\\usepackage{pdflscape}
+% For resizing correlationtables that become too large
+\\usepackage{adjustbox}
 
 % !Rnw weave = knitr
 
-\\title{Chatbot Study Scale Inspection}
-\\author{Gjalt-Jorn Peters}
+\\title{", docTitle, "}
+\\author{", docAuthor, "}
 \\begin{document}
 \\raggedright
 \\noindent
-";  
+");
   
   ### Process each scale separately
   for (currentScale in names(items)) {
@@ -189,13 +216,15 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
                         round(res$normality.plots[[currentScale]]$ks.samplingDist$p.value, 4)));
     row.names(res$normality.samplingDist[[currentScale]]) <- c('value', 'p-val');
     ### Generate scale diagnosis
-    
     tryCatch(
-      res$scaleDiagnostics[[currentScale]] <- diagnoseScale(dat, as.vector(items[[currentScale]]))
+      res$scaleDiagnostics[[currentScale]] <-
+        diagnoseScale(dat, as.vector(items[[currentScale]]))
       , error = function(e) {
         res$scaleDiagnostics.errors[[currentScale]] <- e;
       }
-    );    
+    );
+    ### Generate correlation table
+    res$rMatrix[[currentScale]] <- rMatrix(dat, items[[currentScale]]);
     
     ### Generate the content:
     ###  - name of measure (scale)
@@ -213,22 +242,22 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
     
     res$rnwBit[[currentScale]] <-
       paste0('\\newpage\n',
-             'SCALE: ',
-             sanitizeLatexS(currentScale),
-             '\n\\newline\nITEMS: ',
-             sanitizeLatexS(paste(items[[currentScale]], collapse=", ")),
-             '\n\\newline\n',
+             '\\section{SCALE: ',
+             sanitizeLatexString(currentScale),
+             '}\n',
+             sanitizeLatexString(paste(items[[currentScale]], collapse=", ")),
+             '\n\n\\vspace{1ex}\n',
              '<< echo=FALSE, results="asis" >>=\n',
              '  print(xtable(res$describe[["',
              currentScale,
              '"]], digits=c(0, 0, rep(digits, 7))), tabular.environment="tabular",
              print.rownames=FALSE, floating=FALSE);\n',
              '@\n',
-             '\\begin{minipage}[t]{80mm}\n',
+             '\\vspace{1ex}\\begin{minipage}[t]{80mm}\n',
              '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=8/2.54, fig.height=8/2.54 >>=\n',
              'res$normality.plots[["', currentScale, '"]]$plot.sampleDist;\n',
              '@\n',
-             '<< echo=FALSE, results="asis" >>=\n',
+             '\\vspace{1ex}\n<< echo=FALSE, results="asis" >>=\n',
              '  print(xtable(res$normality.sampleDist[["',
              currentScale,
              '"]], digits=digits), tabular.environment="tabular",
@@ -239,8 +268,8 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
              '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=8/2.54, fig.height=8/2.54 >>=\n',
              'res$normality.plots[["', currentScale, '"]]$plot.samplingDist;\n',
              '@\n',
-             '<< echo=FALSE, results="asis" >>=\n',
-             '  print(xtable(res$normality.samplingDist[["',
+             '\\vspace{1ex}\n<< echo=FALSE, results="asis" >>=\n',
+             'print(xtable(res$normality.samplingDist[["',
              currentScale,
              '"]], digits=digits), tabular.environment="tabular",
              floating=FALSE);\n',
@@ -250,27 +279,36 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
     if (res$scaleDiagnostics[[currentScale]]$scale.ic$n.items > 2) {
       res$rnwBit[[currentScale]] <-
         paste0(res$rnwBit[[currentScale]],
-               '<< echo=FALSE, results="asis" >>=\n',
-               'cat(paste0("\n\\newline\nOmega(total): ", round(res$scaleDiagnostics[["',
+               '\\vspace{1ex}\n<< echo=FALSE, results="asis" >>=\n',
+               'cat(paste0("\n\nOmega(total): ", round(res$scaleDiagnostics[["',
                currentScale,
-               '"]]$scale.ic$output$omega.total, digits), "\n\\newline\nGreatest Lower Bound (GLB): ", round(res$scaleDiagnostics[["',
+               '"]]$scale.ic$output$omega.total, digits), "\n\nGreatest Lower Bound (GLB): ", round(res$scaleDiagnostics[["',
                currentScale,
-               '"]]$scale.ic$output$glb.max, digits), "\n\\newline\nCronbach\'s alpha: ", round(res$scaleDiagnostics[["',
+               '"]]$scale.ic$output$glb.max, digits), "\n\\nCronbach\'s alpha: ", round(res$scaleDiagnostics[["',
                currentScale,
-               '"]]$scale.ic$output$cronbach.alpha, digits), "\n\\newline\n',
-               'Eigen values: ", round(res$scaleDiagnostics[["',
+               '"]]$scale.ic$output$cronbach.alpha, digits), "\n\n',
+               'Eigen values: ", paste(round(res$scaleDiagnostics[["',
                currentScale,
-               '"]]$eigen$values, digits), "\n\\newline\n',
-               'Number of factors with Eigen value > 1: ", res$scaleDiagnostics[["',
+               '"]]$eigen$values, digits), collapse=", "), "\n\n',
+               'Number of factors with Eigen value over 1: ", res$scaleDiagnostics[["',
                currentScale,
-               '"]]$factors, "\n\\newline\n", res$scaleDiagnostics[["',
-               currentScale,
-               '"]]$fa$loadings, "\n\\newline\n));',
+               '"]]$factors, "\n\n"));\n',
                '@\n');
+      ### Show principal component analysis
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
+               '\\vspace{1ex}\n\\begin{minipage}{\\linewidth}\\begin{verbatim}\n',
+               '<< echo=FALSE, results="asis" >>=\n',
+               'print(res$scaleDiagnostics[["',
+               currentScale,
+               '"]]$pca$loadings, digits=digits);\n',
+               '@\n',
+               '\\end{verbatim}\\end{minipage}\n');
+
     } else if (res$scaleDiagnostics[[currentScale]]$scale.ic$n.items == 2) {
       res$rnwBit[[currentScale]] <-
         paste0(res$rnwBit[[currentScale]],
-               '<< echo=FALSE, results="asis" >>=\n',
+               '\\vspace{1cm}\n<< echo=FALSE, results="asis" >>=\n',
                '  cat(paste0("\n\nSpearman Brown coefficient: ", round(res$scaleDiagnostics[["',
                currentScale,
                '"]]$scale.ic$output$spearman.brown, digits), "\n\nCronbach\'s alpha: ", round(res$scaleDiagnostics[["',
@@ -278,22 +316,86 @@ scaleInspection <- function(dat, items, pdfLaTexPath, filename="scaleInspection"
                '"]]$scale.ic$output$cronbach.alpha, digits), "\n\nPearson correlation: ", round(res$scaleDiagnostics[["',
                currentScale,
                '"]]$scale.ic$cor[1,2], digits), "\n\n"));\n',
-               '@\n');
+               '@\n\\vspace{1cm}');
     }
     
+    ### Include correlation table;
+    ### whether to print on a portrait page or
+    ### on a landscape page depends on number of
+    ### columns and rMatrixColsLandscape
+    if (length(res$rMatrix[[currentScale]]$variables.cols) < rMatrixColsLandscape) {
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
+               '\n\\begin{minipage}{\\textwidth}\n\\maxsizebox{\\textwidth}{\\textheight}{\n');
+    }
+    else {
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
+               '\\begin{landscape}\n\\maxsizebox{', 297 - 2*pageMargins, 'mm}{', 210 - 2*pageMargins, 'mm}{\n');
+    }
+    res$rnwBit[[currentScale]] <-
+      paste0(res$rnwBit[[currentScale]],
+             '<< echo=FALSE, results="asis" >>=\n',
+             'print(res$rMatrix[["',
+             currentScale,
+             '"]], digits=digits, output="LaTeX", pboxWidthMultiplier=pboxWidthMultiplier);\n',
+             '@\n');
+    if (length(res$rMatrix[[currentScale]]$variables.cols) < rMatrixColsLandscape) {
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
+               '}\n\\end{minipage}\n');
+    }
+    else {
+      res$rnwBit[[currentScale]] <-
+        paste0(res$rnwBit[[currentScale]],
+               '}\n\\end{landscape}\n');
+    }
+    
+    ### The size of each panel in the scattermatrix depends
+    ### on the number of items - therefore, we need to adjust
+    ### the plot sizes to the number of items. This is mainly
+    ### necessary because in ggpairs.print (which you can
+    ### view with "getAnywhere('print.ggpairs');"), the
+    ### fontsize is fixed at 15.
+    ### knitr wants unit for outputsize, no unit for figure draw
+    ### size (but this must be specified in inches).
+    if (res$scaleDiagnostics[[currentScale]]$scale.ic$n.items * scatterPlotBaseSize > 18) {
+      figSizeInOutput <- 18;
+    }
+    else {
+      figSizeInOutput <- res$scaleDiagnostics[[currentScale]]$scale.ic$n.items * scatterPlotBaseSize;
+    }
+    ### For two items on a page (i.e. plots of roughly 9x9 cm),
+    ### the labels of the plots have roughly the right size,
+    ### so we multiply 9 cm with the number of items.
+    figSizeToDraw <- (9 / 2.54) * res$scaleDiagnostics[[currentScale]]$scale.ic$n.items;
+    ### If figSizeToDraw is smaller than output size, set to output size
+    if (figSizeToDraw < (figSizeInOutput / 2.54)) {
+      figSizeToDraw <- figSizeInOutput / 2.54;
+    }
+    ### Add unit to size in output
+    figSizeInOutput <- paste0(figSizeInOutput, "cm");
+    
+    res$rnwBit[[currentScale]] <-
+      paste0(res$rnwBit[[currentScale]],
+             '\\begin{minipage}{180mm}\n',
+             '<< echo=FALSE, warning=FALSE, dev="pdf", fig.width=', figSizeToDraw, ', fig.height=', figSizeToDraw, ', out.width="', figSizeInOutput, '", out.height="', figSizeInOutput, '" >>=\n',
+             'print(res$scaleDiagnostics[["', currentScale, '"]]$ggpairs.combined);\n',
+             '@\n',
+             '<< echo=FALSE, results="asis" >>=\n',
+             '@\n',
+             '\\end{minipage}%\n');
+
   }
 
   ### Combine all pages generated for each scale
   for (currentScale in names(items)) {
-    res$rnwPanels <- paste0(res$rnwPanels,
-                            res$rnwBit[[currentScale]],
-                            '\n\\newpage');
+    res$rnwPanels <- paste(res$rnwPanels, res$rnwBit[[currentScale]]);
   }
   
-  res$rnw <- c(res$rnw, '\\section{Item Inspection}
+  res$rnw <- c(res$rnw, '\\maketitle\n
 GENERATED ON ', date(),'\n
-CONTENTS: ', length(names(items)), ' measures (scales).\n
-\\newpage');
+CONTENTS: ', length(names(items)), ' measures (scales):\n\\tableofcontents');
 
   ### Combine all pieces
   res$rnw <- c(res$rnw, res$rnwPanels, "\n\\end{document}");
@@ -307,6 +409,17 @@ CONTENTS: ', length(names(items)), ' measures (scales).\n
   knit(paste0(getwd(), "/", filename, ".rnw"), paste0(getwd(), "/", filename, ".tex"));
   
   ### Convert the .tex file to a pdf
+  tryCatch(
+    res$texOutput <- system(paste0('"', pdfLaTexPath, '/pdflatex" "',
+                                   getwd(), '/', filename, '.tex" ',
+                                   '-output-directory "', getwd(), '"'),
+                            intern=TRUE)
+    , error = function(e) {
+      cat(paste("Error returned by pdflatex: ", e));
+    }
+  );
+
+  ### Run second time to generate TOC in PDF
   tryCatch(
     res$texOutput <- system(paste0('"', pdfLaTexPath, '/pdflatex" "',
                                    getwd(), '/', filename, '.tex" ',
