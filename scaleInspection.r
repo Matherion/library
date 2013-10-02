@@ -76,9 +76,10 @@ scaleInspection <- function(dat, items= NULL,
                             pdfLaTexPath,
                             filename = "scaleInspection", digits=2,
                             rMatrixColsLandscape = 6,
-                            pboxWidthMultiplier = .7,
+                            pboxWidthMultiplier = 1,
                             scatterPlotBaseSize = 4,
-                            pageMargins=15) {
+                            pageMargins=15,
+                            pval=TRUE) {
   ### dat          : dataframe containing the items to inspect
   ### items        : either a character vector with the itemnames, or,
   ###                if the items are organised in scales, a list of
@@ -119,6 +120,8 @@ scaleInspection <- function(dat, items= NULL,
   ###                        centimeters. If the total scattermatrix becomes
   ###                        larger than 18 cm, it's scaled down to 18 cm.
   ### pageMargins          : pageMargins: margins of the page in millimeters
+  ### pval                 : whether to print p-values as p-values in
+  ###                        correlation matrix
 
   if (is.null(items)) {
     items <- names(dat);
@@ -338,7 +341,7 @@ scaleInspection <- function(dat, items= NULL,
              '<< echo=FALSE, results="asis" >>=\n',
              'print(res$rMatrix[["',
              currentScale,
-             '"]], digits=digits, output="LaTeX", pboxWidthMultiplier=pboxWidthMultiplier);\n',
+             '"]], digits=digits, output="LaTeX", pboxWidthMultiplier=pboxWidthMultiplier, pval=pval);\n',
              '@\n');
     if (length(res$rMatrix[[currentScale]]$variables.cols) < rMatrixColsLandscape) {
       res$rnwBit[[currentScale]] <-

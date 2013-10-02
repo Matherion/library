@@ -15,7 +15,7 @@
 ###########################################################
 
 rMatrix <- function(dat, x, y=NULL, conf.level = .95, correction = "fdr",
-                    digits = 2, pval=FALSE, eps=.0001, colspace=2, rowspace=0,
+                    digits = 2, pval=FALSE, colspace=2, rowspace=0,
                     colNames ="numbers",
                     output="R",
                     env.LaTeX = 'tabular',
@@ -35,9 +35,6 @@ rMatrix <- function(dat, x, y=NULL, conf.level = .95, correction = "fdr",
   ###   pval       = determines whether format.pval is used to display the p-value.
   ###                This will add three characters to the width of columns in case
   ###                p-values requires scientific notation.
-  ###   eps        = 'numerical tolerance' for formatting p-value; anything lower than
-  ###                this value is shown as "<  value", so if eps is set to .001,
-  ###                all p-values smaller than .001 will be shown as "<.001".
   ###   colspace   = number of spaces between columns
   ###   rowspace   = number of rows between table rows (note: one table row is 2 rows)
   ###
@@ -82,7 +79,6 @@ rMatrix <- function(dat, x, y=NULL, conf.level = .95, correction = "fdr",
   res$correction <- correction;
   res$digits <- digits;
   res$pval <- pval;
-  res$eps <- eps;
   res$colspace <- colspace;
   res$rowspace <- rowspace;
   res$colNames <- colNames;
@@ -182,7 +178,7 @@ sanitizeLatexString <- function(str) {
 print.correlationMatrix <- function (x, digits=x$digits, output=x$output,
                                      env.LaTeX = x$env.LaTeX,
                                      pboxWidthMultiplier = x$pboxWidthMultiplier,
-                                     colNames = x$colNames, ...) {
+                                     colNames = x$colNames, pval=x$pval, ...) {
   
   if (output=="R") {
     
@@ -281,7 +277,7 @@ print.correlationMatrix <- function (x, digits=x$digits, output=x$output,
     cat(paste0(" & ", paste0(sanitizeLatexString(x$variables.cols), collapse=" & "), " \\\\ \n\\hline\n"));
     
     ### Compute width for pBoxes in cells (see below)
-    pboxWidth <- paste0(5 + pboxWidthMultiplier * digits, "em");
+    pboxWidth <- paste0(7 + pboxWidthMultiplier * digits, "em");
     
   }
   
@@ -343,8 +339,8 @@ print.correlationMatrix <- function (x, digits=x$digits, output=x$output,
         }
         else {
           ### Create r & p
-          if(x$pval) {
-            pValue <- noZero(format.pval(x$p.adj[i,j], digits=digits, eps=x$eps));
+          if(pval) {
+            pValue <- noZero(format.pval(x$p.adj[i,j], digits=digits));
             if (substring(as.character(pValue), 1, 1) == "<") {
               pValue <- paste0("p", pValue);
             }
@@ -401,10 +397,10 @@ print.correlationMatrix <- function (x, digits=x$digits, output=x$output,
           ### Print confidence interval and newline character
           cat(paste0(confInt, " \\\\ "));
           ### Print point estimate
-          if(x$pval) {
-            pValue <- noZero(format.pval(x$p.adj[i,j], digits=digits, eps=x$eps));
-            if (substring(as.character(pValue), 1, 1) == "<") {
-              pValue <- paste0("p", pValue);
+          if(pval) {
+            pValue <- noZero(format.pval(x$p.adj[i,j], digits=digits));
+            if (substring(pValue, 1, 1) == "<") {
+              pValue <- paste0("p", "\\textless", substring(pValue, 2, nchar(pValue)));
             }
             else {
               pValue <- paste0("p=", pValue);

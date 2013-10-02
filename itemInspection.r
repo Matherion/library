@@ -206,11 +206,11 @@ itemInspection <- function(dat, items,
       ###     - normality statistics for sampling distribution
       res$rnwBit[[currentScale]][[currentItem]] <-
         paste0('\\begin{minipage}[t][90mm][t]{133.5mm}\n',
-               '\\subsection{MEASURE: ',
+               '\\section{SCALE: ',
                sanitizeLatexString(currentScale),
-               '}\n\\newline\nMEASUREMENT: ',
+               '}\n\\subsection{ITEM: ',
                sanitizeLatexString(currentItem),
-               '\n\\newline\n',
+               '}\n',
                '<< echo=FALSE, results="asis" >>=\n',
                '  print(xtable(res$describe[["',
                currentScale, '"]][["', currentItem,
@@ -264,12 +264,11 @@ itemInspection <- function(dat, items,
     }
   }
 
-  res$rnw <- c(res$rnw, '\\section{', docTitle,'}
-', docAuthor, '\n
+  res$rnw <- c(res$rnw, '\\maketitle\n
 GENERATED ON ', date(),'\n
-CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(items)), ' measures (scales).\n
+CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(items)), ' measures (scales).\n\\tableofcontents
 \\newpage');
-
+  
   ### Combine all pieces
   res$rnw <- c(res$rnw, res$rnwPanels, "\n\\end{document}");
   
