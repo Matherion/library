@@ -206,9 +206,7 @@ itemInspection <- function(dat, items,
       ###     - normality statistics for sampling distribution
       res$rnwBit[[currentScale]][[currentItem]] <-
         paste0('\\begin{minipage}[t][90mm][t]{133.5mm}\n',
-               '\\section{SCALE: ',
-               sanitizeLatexString(currentScale),
-               '}\n\\subsection{ITEM: ',
+               '\\subsection{ITEM: ',
                sanitizeLatexString(currentItem),
                '}\n',
                '<< echo=FALSE, results="asis" >>=\n',
@@ -249,6 +247,11 @@ itemInspection <- function(dat, items,
   ### every four minipages, go to the next page
   panelCounter <- 0;
   for (currentScale in names(items)) {
+    res$rnwPanels <- paste0(res$rnwPanels,
+                            '\n\\newpage\n\\section{SCALE: ',
+                            sanitizeLatexString(currentScale),
+                            '}\n\\newpage\n');
+    panelCounter <- 0;
     for (currentItem in chatbotScales[[currentScale]]) {
       panelCounter <- panelCounter + 1;
       res$rnwPanels <- paste0(res$rnwPanels,
@@ -280,7 +283,18 @@ CONTENTS: ', panelCounter, ' panels (measurements/items) in ', length(names(item
   ### Knit the .tex file
   knit(paste0(getwd(), "/", filename, ".rnw"), paste0(getwd(), "/", filename, ".tex"));
   
-  ### Convert the .tex file to a pdf
+  ### Run once to generate the table of contents file
+  tryCatch(
+    res$texOutput <- system(paste0('"', pdfLaTexPath, '/pdflatex" "',
+                                   getwd(), '/', filename, '.tex" ',
+                                   '-output-directory "', getwd(), '"'),
+                            intern=TRUE)
+    , error = function(e) {
+      cat(paste("Error returned by pdflatex: ", e));
+    }
+  );
+  
+  ### Run again to generate the final PDF
   tryCatch(
     res$texOutput <- system(paste0('"', pdfLaTexPath, '/pdflatex" "',
                                    getwd(), '/', filename, '.tex" ',

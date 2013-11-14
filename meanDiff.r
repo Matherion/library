@@ -3,10 +3,11 @@
 ### R file with the function meanDiff, which is partly
 ### a wrapper for the basic t-test function, but which
 ### also computes Cohen's d and g and the respective
-### confidence interval.
+### confidence intervals.
 ###
 ### File created by Gjalt-Jorn Peters. Questions? You can
-### contact me through http://behaviorchange.eu.
+### contact me through http://behaviorchange.eu. Additional
+### functions can be found at http://github.com/matherion
 ###
 ###########################################################
 
@@ -14,7 +15,9 @@
 ### Define functions
 ###########################################################
 
-meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level = .95, digits = 2) {
+meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test",
+                     conf.level = .95, digits = 2,
+                     envir = parent.frame()) {
   ### This function takes the following parameters:
   ###   x          = numeric vector: variable 1; can also be a formula of the form y ~ x,
   ###                where x must be a factor with two levels (i.e. dichotomous)
@@ -28,6 +31,9 @@ meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level =
   ###                  "yes":            assume x & y have the same variance
   ###   conf.level = confidence of confidence intervals
   ###   digits     = with what precision do you want the ress to print
+  ###   envir      = the environment where to search for the variables (useful
+  ###                when calling meanDiff from a function where the vectors
+  ###                are defined in that functions environment)
 
   ### This function uses the formulae from Borenstein,
   ### Hedges, Higgins & Rothstein (2009) (pages 25-32)
@@ -43,14 +49,30 @@ meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level =
     if (paired) {
       stop("Error: when doing a paired t-test, you have to provide both variables as vectors (of the same length), instead of using the formula specification!");
     }
+    ############################################################
+    ### Note: change on 2013-10-11: now using  eval and parse
+    ### to simply get the vector directly. This enables more
+    ### flexibility, as it becomes possible to just provide
+    ### vectors, rather than columns in a dataframe.
+    ############################################################
     ### Split variable names into dataset and column name
-    depVarData <- unlist(strsplit(as.character(x[2]), "\\$"))[1];
-    depVar <- unlist(strsplit(as.character(x[2]), "\\$"))[2];
-    groupingVarData <- unlist(strsplit(as.character(x[3]), "\\$"))[1];
-    groupingVar <- unlist(strsplit(as.character(x[3]), "\\$"))[2];
+    #depVarData <- unlist(strsplit(as.character(x[2]), "\\$"))[1];
+    #depVar <- unlist(strsplit(as.character(x[2]), "\\$"))[2];
+    #groupingVarData <- unlist(strsplit(as.character(x[3]), "\\$"))[1];
+    #groupingVar <- unlist(strsplit(as.character(x[3]), "\\$"))[2];
     ### Create temporary dataframe to select relevant datapoints
-    temp <- data.frame(dv = get(depVarData)[[depVar]], group = get(groupingVarData)[[groupingVar]]);
+    #temp <- data.frame(dv = get(depVarData)[[depVar]], group = get(groupingVarData)[[groupingVar]]);
+    #temp$group <- as.factor(temp$group);
+    ############################################################
+    ### Get data from vectors or dataframe columns
+    depVar <- as.character(x[2]);
+    groupingVar <- as.character(x[3]);
+    ### Create temporary dataframe to select relevant datapoints
+    temp <- data.frame(dv = eval(parse(text = as.character(x[2])), envir=envir),
+                       group = eval(parse(text = as.character(x[3])), envir=envir));
     temp$group <- as.factor(temp$group);
+    ############################################################
+    
     ### Check number of levels of grouping variable
     if (length(levels(temp[['group']])) != 2) {
       stop(paste0("Error: if no y vector is specified, the x parameter must be a formula of the form y ~ x, where x is dichotomous. However, x has more than two levels: x (", groupingVar,") has ", length(levels(temp[['group']])), " levels."));
@@ -209,11 +231,11 @@ meanDiff <- function(x, y=NULL, paired = FALSE, var.equal = "test", conf.level =
   res$p  <- res$objects$t_test$p.value;
   
   ### Set class & return result
-  class(res) <- c("diff.means");
+  class(res) <- c("meanDiff");
   return(res);
 }
 
-print.diff.means <- function (x, digits=x$digits, ...) {
+print.meanDiff <- function (x, digits=x$digits, ...) {
   if (regexpr("Matched pairs", x$type) > -1) {
     variableInfo <- paste0("\n  ", x$variables[1], " (mean = ", round(x$mean[1], digits), ", sd = ", round(x$sd[1], digits), ", n = ", x$n, ")",
                            "\n  ", x$variables[2], " (mean = ", round(x$mean[2], digits), ", sd = ", round(x$sd[2], digits), ", n = ", x$n, ")");

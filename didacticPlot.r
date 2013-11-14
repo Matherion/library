@@ -64,9 +64,10 @@ didacticPlotTheme <- function(base_size = 14, base_family = "") {
 ###########################################################
 
 didacticPlot <- function(foundValue, statistic, df1, df2 = NULL,
-                         granularity = 1000, xLim = NULL, yLab = "Density",
+                         granularity = 1000, xLim = NULL, yLab = NULL,
                          lineCol = "red", surfaceCol = "red",
-                         textMarginFactor = 20) {
+                         textMarginFactor = 20,
+                         sided="two") {
   ###
   ### foundValue       = found value of relevant statistics;
   ### statistic        = one of "r", "t", "f" or "chisq"
@@ -91,6 +92,15 @@ didacticPlot <- function(foundValue, statistic, df1, df2 = NULL,
   res$granularity <- granularity;
   res$foundValue <- foundValue;
   res$foundValue.hi <- abs(foundValue);
+  
+  if (is.null(yLab)) {
+    if (is.null(df2)) {
+      yLab <- paste0("Density for ", statistic, " when df=", df1);
+    }
+    else {
+      yLab <- paste0("Density for ", statistic, " when df1=", df1, " and df2=", df2);
+    }
+  }
   
   ### Set limits for x axis if none were provided
   if (is.null(xLim)) {
@@ -228,5 +238,7 @@ print.didacticPlot <- function(x) {
   print(x$plot.complete);
 }
 
-### a<-didacticPlot(1, statistic='chisq', df1=2);
-### a<-didacticPlot(1, statistic='t', df1=40);
+# a<-didacticPlot(1, statistic='chisq', df1=2);
+# a<-didacticPlot(1, statistic='t', df1=40);
+
+# a<-didacticPlot(2.02, statistic='t', df1=40, textMarginFactor=25);
