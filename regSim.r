@@ -77,7 +77,7 @@ regSim <- function(meansVector, covarianceMatrix, n = 1000, digits=3) {
   ### Note: the dependent variable has to be the last
   ### variable!
   
-  if !((ncol(covarianceMatrix)==3) & (length(meansVector)==3)) {
+  if (!((ncol(covarianceMatrix)==3) & (length(meansVector)==3))) {
     stop("Sorry, only three variables are currently supported!");
   }
   

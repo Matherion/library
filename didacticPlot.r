@@ -242,3 +242,11 @@ print.didacticPlot <- function(x) {
 # a<-didacticPlot(1, statistic='t', df1=40);
 
 # a<-didacticPlot(2.02, statistic='t', df1=40, textMarginFactor=25);
+
+### Two sample t-test for n1 = n2 = 250, showing
+### p-value of 5%
+# a<-didacticPlot(1.96, statistic='t', df1=498);
+
+### Two sample t-test for n1 = n2 = 250, showing
+### p-value of 10%
+# a<-didacticPlot(1.96, statistic='t', df1=498);

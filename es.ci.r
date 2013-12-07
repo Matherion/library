@@ -73,6 +73,21 @@ criticalNonCentral <- function(distribution, statistic, df1, df2 = NULL,
   
 }
 
+criticalNonCentral.optim<- function(distribution, statistic, df1, df2 = NULL,
+                                    prob) {
+  res <- list();
+  if (distribution == "t") {
+    res$optim <- optim(0, function(x) abs(pt(statistic, df1, x) - prob));
+  }
+  if (distribution == "x") {
+    res$optim <- optim(1, function(x) abs(pchisq(statistic, df1, x) - (1-prob)));
+  }
+  if (distribution == "f") {
+    res$optim <- optim(1, function(x) abs(pf(statistic, df1, df2, x) - (1-prob)));
+  }
+  return(res);
+}
+
 noncentral.ci <- function(distribution, statistic, df1, df2 = NULL,
                           conf.level = .95, ci.bounds = NULL,
                           step = 1E-07) {
@@ -102,9 +117,22 @@ noncentral.ci <- function(distribution, statistic, df1, df2 = NULL,
                                   prob = ci.bounds[2],
                                   step = step);
   
-  res$ncv.ci <- c(tail(res$ncv.ci.lo$dat$ncv, 1),
-                  tail(res$ncv.ci.hi$dat$ncv, 1));
+  res$ncv.ci.lo.optim <- criticalNonCentral.optim(distribution = distribution,
+                                                  statistic = statistic,
+                                                  df1 = df1, df2 = df2,
+                                                  prob = ci.bounds[1]);
+  
+  res$ncv.ci.hi.optim <- criticalNonCentral.optim(distribution = distribution,
+                                                  statistic = statistic,
+                                                  df1 = df1, df2 = df2,
+                                                  prob = ci.bounds[2]);
+  
+  #res$ncv.ci <- c(tail(res$ncv.ci.lo$dat$ncv, 1),
+  #                tail(res$ncv.ci.hi$dat$ncv, 1));
 
+  res$ncv.ci <- c(res$ncv.ci.lo.optim$optim$par,
+                  res$ncv.ci.hi.optim$optim$par);
+  
   res$prob.ci <- c(tail(res$ncv.ci.lo$dat$prob, 1),
                   tail(res$ncv.ci.hi$dat$prob, 1));
   
@@ -112,8 +140,8 @@ noncentral.ci <- function(distribution, statistic, df1, df2 = NULL,
   
 }
 
-es.ci <- function(distribution, statistic, df1, df2 = NULL,
-                  conf.level=.95, ci.bounds=NULL, step = 1E-07) {
+es.ci <- function(distribution, statistic, df1, df2 = NULL, n = NULL,
+                  k = NULL, conf.level=.95, ci.bounds=NULL, step = 1E-07) {
   
   ### This function takes a statistic from a given distribution
   ### (F, t of chi square) and returns the confidence interval
@@ -143,17 +171,40 @@ es.ci <- function(distribution, statistic, df1, df2 = NULL,
   }    
   if (distribution == "x") {
     res$es.type <- "v";
-    res$es.ci <- c((res$ncv$ncv.ci[1] + df) / (n * min(rows - 1, cols - 1)),
-                   (res$ncv$ncv.ci[2] + df) / (n * min(rows - 1, cols - 1)));
+    ### When requesting an effect size for Cramers V, it is necessary
+    ### to know the sample size and the smallest dimension of the table
+    ### (the smallest value of the rows and cols, i.e. min(rows, cols)).
+    ### Thus, in that case, n and k need to be supplied as well.
+    res$es.ci <- c(sqrt((res$ncv$ncv.ci[1] + df1) / (n * (k - 1))),
+                   sqrt((res$ncv$ncv.ci[2] + df1) / (n * (k - 1))));
   }
   
   return(res);
   
 }
 
-plot(dchisq(seq(0, 10, by=.1), df=2, ncp=0), type="l");
-lines(dchisq(seq(0, 10, by=.1), df=2, ncp=.5));
-lines(dchisq(seq(0, 10, by=.1), df=2, ncp=1));
-lines(dchisq(seq(0, 10, by=.1), df=2, ncp=5));
-lines(dchisq(seq(0, 10, by=.1), df=2, ncp=10));
-lines(dchisq(seq(0, 10, by=.1), df=2, ncp=20));
+ncv.to.es <- function(distribution, ncv, df1, df2 = NULL, n = NULL,
+                      k = NULL) {
+  res <- list();
+  if (distribution == "x") {
+    res$es.type <- "v";
+    ### When requesting an effect size for Cramers V, it is necessary
+    ### to know the sample size and the smallest dimension of the table
+    ### (the smallest value of the rows and cols, i.e. min(rows, cols)).
+    ### Thus, in that case, n and k need to be supplied as well.
+    res$es <- sqrt((ncv + df1) / (n * (k - 1)));
+  }
+  return(res);
+}
+
+# plot(dchisq(seq(0, 10, by=.1), df=2, ncp=0), type="l");
+# lines(dchisq(seq(0, 10, by=.1), df=2, ncp=.5));
+# lines(dchisq(seq(0, 10, by=.1), df=2, ncp=1));
+# lines(dchisq(seq(0, 10, by=.1), df=2, ncp=5));
+# lines(dchisq(seq(0, 10, by=.1), df=2, ncp=10));
+# lines(dchisq(seq(0, 10, by=.1), df=2, ncp=20));
+# 
+# plot(dchisq(seq(0, 10, by=.1), df=1, ncp=0), type="l");
+# 
+# a<-es.ci('x', 6, 1, n=300, k = 1)
+

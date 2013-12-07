@@ -5,6 +5,9 @@
 ### collection of .csv files), process these, compute the
 ### D600, and produce a wide dataframe with the output
 ###
+### For a description of the procedure, see e.g.
+### http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3769683/
+###
 ### File created by Frederik van Acker and Gjalt-Jorn
 ### Peters. Questions? You can contact us through
 ### http://behaviorchange.eu
@@ -19,10 +22,6 @@
 ### license, see http://creativecommons.org/licenses/by-sa/3.0/deed.en_US
 ### For more information about Full Disclosure, see
 ### http://sciencerep.org/fulldisclosure
-###
-### For a description of the procedure, see e.g.
-###
-### http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3769683/
 ###
 ###########################################################
 ###########################################################
@@ -43,14 +42,13 @@ safeRequire <- function(packageName) {
 }
 
 ### This function adds a message to the log
-### and prints it depending on a boolean
+### and displays it depending on a boolean
 addToLog <- function(fullLog, logText, showLog = FALSE) {
   if (showLog) {
     cat(logText)
   }
   return(paste0(fullLog, logText));
 }
-
 
 ###########################################################
 ### Initialize
@@ -73,7 +71,34 @@ processOpenSesameIAT <- function(dataPath,
                                  responseTime.max = 2500,
                                  responseTime.penalty = 600,
                                  outputFile = NULL,
-                                 showLog = FALSE) {
+                                 wideOutputFile = NULL,
+                                 showLog = FALSE,
+                                 filenameRegEx = "subject-(\\d+)(\\w+)\\.csv") {
+  
+  ### dataPath:              Directory containing the data files
+  ### blocks.sizes:          vector containing the number of trials of each block
+  ### blocks.congruent:      Vector containing the numbers of the congruent blocks
+  ### blocks.incongruent:    Vector containing the numbers of the incongruent blocks
+  ### blocks.realTrials:     Vector containing the numbers of the real trials
+  ### blocks.practiceTrials: Vector containing the numbers of the practice trials
+  ### responseTime.min:      Minimum number of milliseconds of response time
+  ###                        (all shorter times will be removed)
+  ### responseTime.max:      Maximum number of milliseconds of response time
+  ###                        (all longer times will be replaced with this number)
+  ### responseTime.penalty:  Penalty in milliseconds to add to the response times
+  ###                        for incorrect responses
+  ### outputFile:            If specified, the aggregated datafile is
+  ###                        stored in this file
+  ### wideOutputFile:        If specified, the wide version of the datafile will
+  ###                        be stored in this file
+  ### showLog:               Boolean; if true, shows the log (is stored in the
+  ###                        resulting object anyway)
+  ### filenameRegEx:         Regular expression that can contain up tot two
+  ###                        expressions (i.e. parenthesizes elements). The first
+  ###                        expression is considered to distinguish different
+  ###                        participants; the second expression different
+  ###                        versions of the task.
+  
   ### Generate object to return
   res <- list();
   
@@ -109,13 +134,33 @@ processOpenSesameIAT <- function(dataPath,
                                          NA));
   
   ### Store filenames in a character vector.
-  res$inputFiles <- list.files(dataPath);
+  res$inputFiles.all <- list.files(dataPath);
+  
+  ### Check whether a regular expression was specified to select
+  ### filenames and information about each participant/sessions
+  if (!is.null(filenameRegEx)) {
+    ### Select filenames matching regular expression
+    res$inputFiles <- grep(filenameRegEx, res$inputFiles.all, value=TRUE);
+    ### Start log by indicating number of valid files
+    logText <- addToLog("--- processOpenSesameIAT log ---\n",
+                        paste0("Read folder '", dataPath, "'. Out of ",
+                               length(res$inputFiles.all), " files, ",
+                               length(res$inputFiles), " matched regular expression '",
+                               filenameRegEx, "'.\n"),
+                        showLog);
+  }
+  else {
+    ### Process all files
+    res$inputFiles <- res$inputFiles.all;
+    ### Start log by indicating number of valid files
+    logText <- addToLog("--- processOpenSesameIAT log ---\n",
+                        paste0("Read folder '", dataPath, "'. Processing all ",
+                               length(res$inputFiles.all), " files.\n"),
+                        showLog);
+  }
   
   ### Create dataframe for aggregated results
   res$dat <- data.frame();
-  
-  ### Create empty log variable
-  logText <- "";
   
   ### Start loop to read each participants' file
   for (currentParticipant in 1:length(res$inputFiles)) {
@@ -123,7 +168,20 @@ processOpenSesameIAT <- function(dataPath,
     logText <- addToLog(logText,
              paste0("Starting to process file ", res$inputFiles[currentParticipant], "\n"),
              showLog);
-             
+
+    ### Store filename that was used
+    res$dat[currentParticipant, 'filename'] <-
+      res$inputFiles[currentParticipant];
+    
+    ### If a regular expression was set, extract information
+    ### from the filename and store this as well
+    if (!is.null(filenameRegEx)) {
+      res$dat[currentParticipant, 'participant'] <-
+        sub(filenameRegEx, "\\1", res$inputFiles[currentParticipant]);
+      res$dat[currentParticipant, 'session'] <-
+        sub(filenameRegEx, "\\2", res$inputFiles[currentParticipant]);
+    }
+    
     ### For some reason, some datafiles have the header
     ### repeated in between the data. Therefore, we read
     ### the file manually, and then scan for lines that
@@ -154,9 +212,10 @@ processOpenSesameIAT <- function(dataPath,
     if (!(length(res$file.clean[[currentParticipant]]) ==
             (sum(res$blocks.sizes) + 1))) {
       logText <- addToLog(logText,
-               paste0("    File has only ",
+               paste0("    File has ",
                       length(res$file.clean[[currentParticipant]]) - 1,
-                      " rows (trials) - excluding participant.\n"),
+                      " rows (trials); ", sum(res$blocks.sizes),
+                      " required; excluding participant.\n"),
                showLog);
     }
     else {
@@ -240,7 +299,7 @@ processOpenSesameIAT <- function(dataPath,
         ### That means the participant has to be excluded.
         logText <- addToLog(logText,
                  paste0("    This participant has zero (0) correct ",
-                        "responses in one or more blocks! Excluding participant.\n"),
+                        "responses in one or more blocks; excluding participant.\n"),
                  showLog);
       }
       else {
@@ -356,16 +415,46 @@ processOpenSesameIAT <- function(dataPath,
     
       }
       
-      ### Store filename that was used
-      res$dat[currentParticipant, 'filename'] <-
-        res$inputFiles[currentParticipant];
-  
       logText <- addToLog(logText,
                paste0("Done processing file ",
                       res$inputFiles[currentParticipant], "\n"),
                showLog);
     }
   }
+
+  if (!is.null(filenameRegEx)) {
+    ### Convert data to wide format
+    res$dat.wide <- reshape(res$dat,
+                            timevar="session",
+                            idvar="participant",
+                            direction="wide", sep="_");
+    logText <- addToLog(logText,
+                        paste0("Generated long version of datafile\n"),
+                        showLog);
+  }
+  
+  ### This is an attempt to do the long->wide conversion
+  ### manually, but I didn't manage to get it working.
+  ### However, I'm keeping it around just in case there's
+  ### a need for some of this code later on.
+#   res$dat.wide <- ddply(a, "participant", sessionVar = 'session',
+#                         function(dat, sessionVar) {
+#     ### Create dataframe to return.
+#     res <- data.frame();
+#     ### Create object to store every line of the dataframe
+#     ### for this participant
+#     lines <- list();
+#     for (currentSession in levels(as.factor(dat[[sessionVar]]))) {
+#       ### Add current line from dataframe
+#       lines[[currentSession]] <- dat[dat[[sessionVar]] == currentSession, ];
+#       ### Prepend session to variable names
+#       names(lines[[currentSession]]) <-
+#         paste0(currentSession, "_", names(lines[[currentSession]]));
+#     }
+#     ### Combine dataframes and return using rbind.fill,
+#     ### from the plyr package
+#     return(rbind.fill(lines));
+#   });
   
   if (!is.null(outputFile)) {
     ### Store aggregated datafile
@@ -374,19 +463,33 @@ processOpenSesameIAT <- function(dataPath,
              paste0("Saved aggregated datafile to", outputFile, "\n"),
              showLog);
   }
+
+  if (!is.null(wideOutputFile)) {
+    ### Store wide datafile
+    write.csv(res$dat.wide, wideOutputFile);
+    logText <- addToLog(logText,
+                        paste0("Saved wide datafile to", outputFile, "\n"),
+                        showLog);
+  }
   
   ### Store log
   res$log <- logText;
   
+  ### Set classes for returned object and the log
   class(res) <- c('processOpenSesameIAT');
+  class(res$log) <- c("processOpenSesameIAT.log");
   
   return(res);
 
 }
 
 print.processOpenSesameIAT <- function (x) {
-  cat("Run succesfully - parsed", nrow(x$dat), "files.\n");
+  cat("Ran succesfully - parsed", nrow(x$dat), "files.\n");
   if (!is.null(x$outputFile)) {
     cat("Stored aggregated datafile in", x$outputFile, "\n");
   }
+}
+
+print.processOpenSesameIAT.log <- function(x) {
+  cat(x);
 }
