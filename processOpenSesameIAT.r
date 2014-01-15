@@ -74,7 +74,7 @@ processOpenSesameIAT <- function(dataPath,
                                  wideOutputFile = NULL,
                                  showLog = FALSE,
                                  filenameRegEx = "subject-(\\d+)(\\w+)\\.csv") {
-  
+
   ### dataPath:              Directory containing the data files
   ### blocks.sizes:          vector containing the number of trials of each block
   ### blocks.congruent:      Vector containing the numbers of the congruent blocks
@@ -230,6 +230,14 @@ processOpenSesameIAT <- function(dataPath,
   
       ### Add vector with congruency for each trial
       res$dat.raw[[currentParticipant]]$congruent <- res$congruency.vector;
+
+      ### Correct the 'correct' answers, such that anything
+      ### other than 1 is replaced by 0
+      res$dat.raw[[currentParticipant]]$correct.corrected <-
+        ifelse(res$dat.raw[[currentParticipant]]$correct == 0,
+               0, 1);
+      res$dat.raw[[currentParticipant]]$correct.corrected <-
+        as.numeric(res$dat.raw[[currentParticipant]]$correct.corrected);
       
       ### For each trial, store whether the response
       ### time is sufficiently high
@@ -292,7 +300,7 @@ processOpenSesameIAT <- function(dataPath,
       if (length(aggregate(response_time_clipped ~ blockNumber, data =
                          res$dat.raw[[currentParticipant]][
                            res$dat.raw[[currentParticipant]]$rt_valid &
-                           (res$dat.raw[[currentParticipant]]$correct == 1)
+                           (res$dat.raw[[currentParticipant]]$correct.corrected == 1)
                            , ],
                        FUN = "mean", na.rm=TRUE)$response_time_clipped) < length(blocks.sizes)) {
         ### In this case, one or more blocks has zero correct responses.
@@ -309,7 +317,7 @@ processOpenSesameIAT <- function(dataPath,
           rep(aggregate(response_time_clipped ~ blockNumber, data =
                         res$dat.raw[[currentParticipant]][
                           res$dat.raw[[currentParticipant]]$rt_valid &
-                          (res$dat.raw[[currentParticipant]]$correct == 1)
+                          (res$dat.raw[[currentParticipant]]$correct.corrected == 1)
                         , ],
                         FUN = "mean", na.rm=TRUE)$response_time_clipped, blocks.sizes);
 
@@ -317,7 +325,7 @@ processOpenSesameIAT <- function(dataPath,
         ### answers with the mean response time for that
         ### block plus the penalty
         res$dat.raw[[currentParticipant]]$response_time_penalized <-
-          ifelse(res$dat.raw[[currentParticipant]]$correct == 1,
+          ifelse(res$dat.raw[[currentParticipant]]$correct.corrected == 1,
                  res$dat.raw[[currentParticipant]]$response_time_clipped,
                  res$dat.raw[[currentParticipant]]$response_time_blockMean +
                    res$responseTime.penalty);

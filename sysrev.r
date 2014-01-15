@@ -182,3 +182,95 @@ sysrev.export <- function (libraryObject, filename, drop=NULL, keep=NULL,
   }
 }
 
+
+
+
+addFrameStart <- function(name) {
+  return(paste0("### Here we open a frame called ", name));
+}
+
+addFrameEnd <- function(name) {
+  return(paste0("### Here we close a frame called ", name));
+}
+
+addString <- function(name) {
+  return(paste0("### Here we add a textbox for a string called ", name));
+}
+
+addInteger <- function(name) {
+  return(paste0("### Here we add a textbox for an integer called ", name));
+}
+
+addFloat <- function(name) {
+  return(paste0("### Here we add a textbox for a floating point variable called ", name));
+}
+
+buildInterfaceFromXML <- function(node) {
+
+  ### Empty interface string
+  interface <- "";
+  
+  if ('XMLInternalDocument' %in% class(node)) {
+    ### It's the entire document, so verify whether it's the
+    ### correct format (should have a root node called 'specification')
+    ### and if so, process that 'specification' root node;
+    ### otherwise, abort.
+    if (tolower(xmlName(xmlRoot(node))) == 'specification') {
+      interface <- buildInterfaceFromXML(xmlChildren(node)[[1]]);;
+    }
+    else {
+      stop("Error: root node of XML file is not 'specification', but ", tolower(xmlName(xmlRoot(node))));
+    }
+  }
+  else {
+    ### Check whether we have children or not
+    ### However, text content is seen as a child, so
+    ### first we select only the 'real' childen.
+    realChildren <- xmlChildren(node);
+    if (length(realChildren) > 0) {
+      for (currentChild in 1:length(realChildren)) {
+        if ("XMLInternalTextNode" %in% class(realChildren[[currentChild]])) {
+          realChildren[[currentChild]] <- NULL;
+          print("REMOVED 1 CHILD FROM ", xmlName(realChildren[[currentChild]]));
+        }
+      }
+    }
+    ### Now check how many 'real' children (i.e. nodes) we have
+    if (length(xmlChildren(node)) == 0) {
+      if (length(xmlAttrs(node)) == 0) {
+        ### This should not occur normally
+        interface <- paste0("### ", as.character(xmlName(node)), " has no children or attributes!");
+      }
+      else {
+        type <- as.character(xmlAttrs(node)["type"]);
+        if (type == "string") {
+          interface <- addString(as.character(xmlName(node)));
+        }
+        else if (type == "integer") {
+          interface <- addInteger(as.character(xmlName(node)));
+        }
+        else {
+          ### This should not occur normally
+          interface <- paste0("### ", xmlName(node), " has unknown type ", type);
+        }
+      }
+    }
+    else {
+      ### So we have children
+      interface <- paste0(interface, '\n', addFrameStart(xmlName(node)));
+      print(paste0('Nr of children in ', xmlName(node), ': ', length(xmlChildren(node))));
+      ### Loop through children and process one by one
+      for (currentChild in 1:length(xmlChildren(node))) {
+        interface <- paste0(interface, "\n",
+                            buildInterfaceFromXML(xmlChildren(node)[[currentChild]]));
+      }
+      interface <- paste0(interface, '\n', addFrameEnd(xmlName(node)));
+    }
+  }
+  
+  return(interface);
+  
+}
+
+
+
